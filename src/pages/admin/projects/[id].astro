@@ -1,0 +1,83 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import { db, slugify, type Project } from '../../../lib/db';
+
+const isNew = Astro.params.id === 'new';
+const id = Number(Astro.params.id);
+let error = '';
+
+if (Astro.request.method === 'POST') {
+  const fd = await Astro.request.formData();
+  const s = (k: string) => String(fd.get(k) ?? '').trim();
+  if (s('action') === 'delete' && !isNew) {
+    await db().prepare('DELETE FROM projects WHERE id = ?1').bind(id).run();
+    return Astro.redirect('/admin/projects?saved=1');
+  }
+  const title = s('title') || 'Untitled project';
+  const slug = slugify(s('slug') || title);
+  const clash = await db().prepare('SELECT 1 FROM projects WHERE slug = ?1 AND id != ?2').bind(slug, isNew ? 0 : id).first();
+  if (clash) error = `Another project already uses the link “${slug}”.`;
+  else {
+    const data = JSON.stringify({
+      title,
+      org: s('org'),
+      year: s('year'),
+      summary: s('summary'),
+      stack: s('stack').split(',').map((x) => x.trim()).filter(Boolean),
+      body: s('body'),
+    });
+    const published = fd.get('published') ? 1 : 0;
+    if (isNew) {
+      const row = await db()
+        .prepare(`INSERT INTO projects (slug, position, published, data) VALUES (?1, (SELECT COALESCE(MAX(position),0)+1 FROM projects), ?2, ?3) RETURNING id`)
+        .bind(slug, published, data)
+        .first<{ id: number }>();
+      return Astro.redirect(`/admin/projects/${row!.id}?saved=1`);
+    }
+    await db().prepare('UPDATE projects SET slug = ?1, published = ?2, data = ?3 WHERE id = ?4').bind(slug, published, data, id).run();
+    return Astro.redirect(`/admin/projects/${id}?saved=1`);
+  }
+}
+
+let p: Partial<Project> = { published: true, stack: [] };
+if (!isNew) {
+  const r = await db().prepare('SELECT * FROM projects WHERE id = ?1').bind(id).first<any>();
+  if (!r) return Astro.redirect('/admin/projects');
+  p = { ...JSON.parse(r.data), id: r.id, slug: r.slug, published: !!r.published };
+}
+---
+
+<Admin title={isNew ? 'New project' : p.title!}>
+  <p class="crumbs"><a href="/admin/projects">← Projects</a></p>
+  <div class="a-head">
+    <h1>{isNew ? 'New project' : p.title}</h1>
+    {!isNew && p.published && <a class="button" href={`/projects/${p.slug}`} target="_blank" rel="noopener">View on site ↗</a>}
+  </div>
+
+  <form method="post" class="panel">
+    {error && <p class="error" role="alert">{error}</p>}
+    <label class="field"><span>Title</span><input type="text" name="title" value={p.title} required /></label>
+    <div class="grid-3">
+      <label class="field"><span>Where</span><input type="text" name="org" value={p.org} placeholder="Company or personal" /></label>
+      <label class="field"><span>Year</span><input type="text" name="year" value={p.year} /></label>
+      <label class="field"><span>Link</span><input type="text" name="slug" value={p.slug} placeholder="auto from title" /></label>
+    </div>
+    <label class="field">
+      <span>Summary <small class="hint">(one or two lines for the project card)</small></span>
+      <textarea name="summary" rows="2">{p.summary}</textarea>
+    </label>
+    <label class="field">
+      <span>Tools used <small class="hint">(comma separated)</small></span>
+      <input type="text" name="stack" value={(p.stack ?? []).join(', ')} />
+    </label>
+    <label class="field">
+      <span>Full write-up <small class="hint">(leave a blank line between paragraphs)</small></span>
+      <textarea name="body" rows="10">{p.body}</textarea>
+    </label>
+    <label class="check"><input type="checkbox" name="published" checked={p.published} /> Show on my site</label>
+    <div class="savebar">
+      <button class="primary" type="submit" name="action" value="save">{isNew ? 'Create project' : 'Save project'}</button>
+      {!isNew && <button class="danger first" name="action" value="delete" data-confirm="Delete this project?">Delete</button>}
+    </div>
+  </form>
+</Admin>

@@ -1,12 +1,10 @@
 ---
 import Base from '../../layouts/Base.astro';
-import { projects } from '../../data/profile';
+import { getProject } from '../../lib/db';
 
-export function getStaticPaths() {
-  return projects.map((p) => ({ params: { slug: p.slug }, props: { project: p } }));
-}
-
-const { project } = Astro.props;
+const project = await getProject(Astro.params.slug!);
+if (!project || !project.published) return new Response(null, { status: 404 });
+const paragraphs = project.body.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
 ---
 
 <Base title={project.title} description={project.summary}>
@@ -17,7 +15,7 @@ const { project } = Astro.props;
     <p>{project.summary}</p>
   </header>
   <article class="body">
-    {project.body.map((para) => <p>{para}</p>)}
+    {paragraphs.map((para) => <p>{para}</p>)}
     <div class="stack">
       {project.stack.map((s) => <span class="chip">{s}</span>)}
     </div>

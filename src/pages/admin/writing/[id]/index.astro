@@ -1,0 +1,196 @@
+---
+import Admin from '../../../../layouts/Admin.astro';
+import { db, getStoryById, getChapters, slugify } from '../../../../lib/db';
+
+const id = Number(Astro.params.id);
+const story = await getStoryById(id);
+if (!story) return Astro.redirect('/admin/writing');
+let error = '';
+
+if (Astro.request.method === 'POST') {
+  const fd = await Astro.request.formData();
+  const action = String(fd.get('action'));
+
+  if (action === 'new-chapter') {
+    const n = ((await db().prepare('SELECT COUNT(*) AS n FROM chapters WHERE story_id = ?1').bind(id).first<{ n: number }>())?.n ?? 0) + 1;
+    const slug = `chapter-${n}-${Date.now().toString(36).slice(-3)}`;
+    const ch = await db()
+      .prepare(
+        `INSERT INTO chapters (story_id, slug, title, position) VALUES (?1, ?2, ?3, (SELECT COALESCE(MAX(position),0)+1 FROM chapters WHERE story_id = ?1)) RETURNING id`,
+      )
+      .bind(id, slug, `Chapter ${n}`)
+      .first<{ id: number }>();
+    return Astro.redirect(`/admin/writing/${id}/${ch!.id}`);
+  }
+
+  if (action === 'delete') {
+    await db().batch([
+      db().prepare('DELETE FROM chapters WHERE story_id = ?1').bind(id),
+      db().prepare('DELETE FROM stories WHERE id = ?1').bind(id),
+    ]);
+    return Astro.redirect('/admin/writing?saved=1');
+  }
+
+  if (action === 'save') {
+    const title = String(fd.get('title') ?? '').trim() || 'Untitled story';
+    const slug = slugify(String(fd.get('slug') ?? '') || title);
+    const clash = await db().prepare('SELECT 1 FROM stories WHERE slug = ?1 AND id != ?2').bind(slug, id).first();
+    if (clash) {
+      error = `Another story already uses the link “${slug}”. Pick a different one.`;
+    } else {
+      const tags = String(fd.get('tags') ?? '')
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean);
+      await db()
+        .prepare(
+          `UPDATE stories SET title=?1, slug=?2, blurb=?3, tags=?4, status=?5, cover=?6, published=?7, updated_at=datetime('now') WHERE id=?8`,
+        )
+        .bind(title, slug, String(fd.get('blurb') ?? ''), JSON.stringify(tags), String(fd.get('status') ?? 'Ongoing'), String(fd.get('cover') ?? ''), fd.get('published') ? 1 : 0, id)
+        .run();
+      return Astro.redirect(`/admin/writing/${id}?saved=1`);
+    }
+  }
+}
+
+const chapters = await getChapters(id, true);
+const total = chapters.reduce((n, c) => n + c.words, 0);
+const nowKey = new Date().toISOString().slice(0, 16);
+const state = (c: (typeof chapters)[number]) =>
+  !c.published ? ['Draft', ''] : c.publish_at && c.publish_at > nowKey ? ['Scheduled', 'sched'] : ['Published', 'live'];
+---
+
+<Admin title={story.title}>
+  <p class="crumbs"><a href="/admin/writing">← Writing</a></p>
+  <div class="a-head">
+    <div>
+      <h1>{story.title}</h1>
+      <p>{chapters.length} {chapters.length === 1 ? 'chapter' : 'chapters'} · {total.toLocaleString()} words</p>
+    </div>
+    <div class="actions">
+      {story.published && <a class="button" href={`/writing/${story.slug}`} target="_blank" rel="noopener">View on site ↗</a>}
+      <form method="post">
+        <input type="hidden" name="action" value="new-chapter" />
+        <button class="primary" type="submit">+ New chapter</button>
+      </form>
+    </div>
+  </div>
+
+  <section class="panel">
+    <h2>Chapters</h2>
+    <p class="hint">Drag ⋮⋮ to reorder. Only published chapters appear on the site.</p>
+    {chapters.length === 0 && <p class="empty-state">No chapters yet.</p>}
+    <ul class="list" data-sortable="chapters">
+      {
+        chapters.map((c, i) => {
+          const [label, cls] = state(c);
+          return (
+            <li class="item" data-id={c.id}>
+              <span class="handle" title="Drag to reorder">⋮⋮</span>
+              <span class="mono num" data-num>{String(i + 1).padStart(2, '0')}</span>
+              <div class="grow">
+                <a class="title" href={`/admin/writing/${id}/${c.id}`}>{c.title}</a>
+                <span class="sub">{c.words.toLocaleString()} words</span>
+              </div>
+              <span class:list={['badge', cls]}>{label}</span>
+            </li>
+          );
+        })
+      }
+    </ul>
+  </section>
+
+  <form method="post" class="panel">
+    <h2>Story details</h2>
+    <p class="hint">How the story looks on your Writing page.</p>
+    {error && <p class="error" role="alert">{error}</p>}
+    <div class="details">
+      <div>
+        <span class="field"><span>Cover</span></span>
+        <div class="upload cover" data-upload>
+          <img alt="" hidden />
+          <input type="hidden" name="cover" value={story.cover} />
+          <div>
+            <input type="file" accept="image/*" />
+            <p class="up-status">Portrait images look best (2:3).</p>
+            <button class="linkish" data-clear hidden>Remove cover</button>
+          </div>
+        </div>
+      </div>
+      <div>
+        <label class="field">
+          <span>Title</span>
+          <input type="text" name="title" value={story.title} required />
+        </label>
+        <label class="field">
+          <span>Blurb</span>
+          <textarea name="blurb" rows="4" placeholder="A few lines to hook a reader.">{story.blurb}</textarea>
+        </label>
+        <div class="grid-2">
+          <label class="field">
+            <span>Tags <small class="hint">(comma separated)</small></span>
+            <input type="text" name="tags" value={story.tags.join(', ')} placeholder="Romance, Drama" />
+          </label>
+          <label class="field">
+            <span>Status</span>
+            <select name="status">
+              {['Ongoing', 'Completed', 'On hiatus'].map((s) => <option selected={s === story.status}>{s}</option>)}
+            </select>
+          </label>
+        </div>
+        <label class="field">
+          <span>Link</span>
+          <input type="text" name="slug" value={story.slug} />
+          <small class="hint">yoursite/writing/{story.slug}</small>
+        </label>
+        <label class="check">
+          <input type="checkbox" name="published" checked={story.published} />
+          Show this story on my site
+        </label>
+      </div>
+    </div>
+    <div class="savebar">
+      <button class="primary" type="submit" name="action" value="save">Save details</button>
+      <button class="danger first" name="action" value="delete" data-confirm="Delete this story and all its chapters? This can’t be undone.">Delete story</button>
+    </div>
+  </form>
+</Admin>
+
+<script>
+  import { initSortable } from '../../../../scripts/sortable';
+  initSortable();
+</script>
+
+<style>
+  .num {
+    color: var(--ink-3);
+    font-size: 14px;
+  }
+
+  .details {
+    display: grid;
+    grid-template-columns: 180px minmax(0, 1fr);
+    gap: 24px;
+  }
+
+  .details .upload {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .details .upload img {
+    width: 140px;
+    height: 210px;
+  }
+
+  .details input[type='file'] {
+    max-width: 180px;
+    font-size: 13px;
+  }
+
+  @media (max-width: 640px) {
+    .details {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

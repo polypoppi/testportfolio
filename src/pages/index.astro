@@ -1,6 +1,8 @@
 ---
 import Base from '../layouts/Base.astro';
-import { profile, tools, highlights } from '../data/profile';
+import { getSettings } from '../lib/db';
+
+const { profile, tools, highlights } = await getSettings();
 
 // Scatter positions for the floating tool tiles (percent of hero box).
 const spots = [
@@ -19,7 +21,7 @@ const barcode = Array.from({ length: 34 }, (_, i) => [1, 3, 2, 1, 4, 2, 1, 2, 3]
 
     <div class="tiles" aria-hidden="true">
       {
-        tools.map((t, i) => (
+        tools.slice(0, spots.length).map((t, i) => (
           <span
             class="tile"
             style={`left:${spots[i].x}%;top:${spots[i].y}%;animation-delay:${i * -1.3}s`}

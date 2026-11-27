@@ -1,12 +1,10 @@
 ---
 import Base from '../../../layouts/Base.astro';
-import { stories } from '../../../data/profile';
+import { getStoryBySlug, getChapters } from '../../../lib/db';
 
-export function getStaticPaths() {
-  return stories.map((s) => ({ params: { story: s.slug }, props: { story: s } }));
-}
-
-const { story } = Astro.props;
+const story = await getStoryBySlug(Astro.params.story!);
+if (!story) return new Response(null, { status: 404 });
+const chapters = await getChapters(story.id);
 ---
 
 <Base title={story.title} description={story.blurb}>
@@ -16,13 +14,13 @@ const { story } = Astro.props;
       {story.cover ? <img src={story.cover} alt="" /> : <span>{story.title}</span>}
     </div>
     <div>
-      <p class="eyebrow">{story.status} · {story.chapters.length} chapters</p>
+      <p class="eyebrow">{story.status} · {chapters.length} chapters</p>
       <h1>{story.title}</h1>
       <p class="blurb">{story.blurb}</p>
       <div class="tags">{story.tags.map((t) => <span class="chip">{t}</span>)}</div>
       {
-        story.chapters[0] && (
-          <a class="btn start" href={`/writing/${story.slug}/${story.chapters[0].slug}`}>
+        chapters[0] && (
+          <a class="btn start" href={`/writing/${story.slug}/${chapters[0].slug}`}>
             Start reading
             <span class="dot" aria-hidden="true">→</span>
           </a>
@@ -34,7 +32,7 @@ const { story } = Astro.props;
   <h2 class="toc-title">Table of contents</h2>
   <ol class="toc">
     {
-      story.chapters.map((c, i) => (
+      chapters.map((c, i) => (
         <li>
           <a href={`/writing/${story.slug}/${c.slug}`}>
             <span class="mono n">{String(i + 1).padStart(2, '0')}</span>

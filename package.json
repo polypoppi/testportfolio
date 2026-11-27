@@ -1,19 +1,23 @@
 {
   "name": "resume-site",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "preview": "astro preview"
+    "preview": "astro build && wrangler dev",
+    "db:local": "wrangler d1 migrations apply resume-site --local",
+    "deploy": "wrangler deploy && wrangler d1 migrations apply resume-site --remote",
+    "hash-password": "node scripts/hash-password.mjs",
+    "seed:generate": "node --experimental-strip-types scripts/seed.ts"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "@astrojs/cloudflare": "^14.4.9",
+    "@tiptap/core": "^3.35.1",
+    "@tiptap/extension-link": "^3.35.1",
+    "@tiptap/extension-placeholder": "^3.35.1",
+    "@tiptap/starter-kit": "^3.35.1",
     "astro": "^7.4.13"
   },
-  "type": "module"
+  "type": "module",
+  "private": true
 }

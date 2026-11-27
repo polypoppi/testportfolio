@@ -1,12 +1,13 @@
 ---
 import '../styles/global.css';
-import { profile } from '../data/profile';
+import { getSettings } from '../lib/db';
 
 interface Props {
   title?: string;
   description?: string;
 }
 
+const { profile } = await getSettings();
 const { title, description = profile.intro } = Astro.props;
 const pageTitle = title ? `${title} · ${profile.name}` : `${profile.name} · ${profile.title}`;
 const path = Astro.url.pathname.replace(/\/$/, '') || '/';
@@ -94,6 +95,12 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
         <slot />
       </main>
     </div>
+    <script>
+      // On phones the nav scrolls sideways: bring the current page into view.
+      const nav = document.querySelector<HTMLElement>('.nav');
+      const cur = nav?.querySelector<HTMLElement>('.active');
+      if (nav && cur && nav.scrollWidth > nav.clientWidth) nav.scrollLeft = cur.offsetLeft - 16;
+    </script>
   </body>
 </html>
 

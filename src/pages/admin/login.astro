@@ -1,0 +1,71 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import { checkLogin, createSession, isRateLimited, SESSION_COOKIE, validSession } from '../../lib/auth';
+
+const rawNext = Astro.url.searchParams.get('next') ?? '/admin';
+const next = rawNext.startsWith('/admin') ? rawNext : '/admin';
+let error = '';
+
+if (await validSession(Astro.cookies.get(SESSION_COOKIE)?.value)) return Astro.redirect(next);
+
+if (Astro.request.method === 'POST') {
+  const ip = Astro.request.headers.get('cf-connecting-ip') ?? Astro.clientAddress ?? 'unknown';
+  if (await isRateLimited(ip)) {
+    error = 'Too many attempts. Please wait 15 minutes and try again.';
+  } else {
+    const fd = await Astro.request.formData();
+    const ok = await checkLogin(ip, String(fd.get('username') ?? ''), String(fd.get('password') ?? ''));
+    if (ok) {
+      await createSession(Astro.cookies, Astro.url.protocol === 'https:');
+      return Astro.redirect(next);
+    }
+    error = 'That username and password don’t match.';
+  }
+}
+---
+
+<Admin title="Sign in" bare>
+  <main class="login">
+    <form method="post" class="panel">
+      <span class="a-logo">MG</span>
+      <h1>Welcome back</h1>
+      <p class="hint">Sign in to edit your site and writing.</p>
+      {error && <p class="error" role="alert">{error}</p>}
+      <label class="field">
+        <span>Username</span>
+        <input type="text" name="username" autocomplete="username" required autofocus />
+      </label>
+      <label class="field">
+        <span>Password</span>
+        <input type="password" name="password" autocomplete="current-password" required />
+      </label>
+      <button class="primary" type="submit">Sign in</button>
+    </form>
+  </main>
+</Admin>
+
+<style>
+  .login {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 16px;
+  }
+
+  form {
+    width: min(380px, 100%);
+    padding: 32px;
+  }
+
+  h1 {
+    margin-top: 18px;
+    font-size: 28px;
+  }
+
+  button {
+    width: 100%;
+    justify-content: center;
+    margin-top: 6px;
+    padding: 12px;
+  }
+</style>
