@@ -22,13 +22,13 @@ export const profile = {
 // tiles without a logo show the short code instead.
 export const tools = [
   { code: 'AB', name: 'Airbus', logo: '/logos/airbus.svg' },
-  { code: 'X', name: 'Excel', logo: '' },
+  { code: 'X', name: 'Excel', logo: '/logos/excel.svg' },
   { code: 'SQ', name: 'Singapore Airlines', logo: '/logos/singaporeairlines.svg' },
-  { code: 'PA', name: 'Power Automate', logo: '' },
+  { code: 'PA', name: 'Power Automate', logo: '/logos/powerautomate.svg' },
   { code: '1A', name: 'Amadeus', logo: '' },
-  { code: 'BI', name: 'Power BI', logo: '' },
+  { code: 'BI', name: 'Power BI', logo: '/logos/powerbi.svg' },
   { code: 'MA', name: 'Malaysia Airports', logo: '' },
-  { code: 'SP', name: 'SharePoint', logo: '' },
+  { code: 'SP', name: 'SharePoint', logo: '/logos/sharepoint.svg' },
   { code: 'Qk', name: 'Qlik', logo: '/logos/qlik.svg' },
   { code: 'KB', name: 'Kris Business Hub', logo: '' },
   { code: 'SAP', name: 'SAP', logo: '/logos/sap.svg' },
