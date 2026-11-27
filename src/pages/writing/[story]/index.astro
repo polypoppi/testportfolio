@@ -1,0 +1,145 @@
+---
+import Base from '../../../layouts/Base.astro';
+import { stories } from '../../../data/profile';
+
+export function getStaticPaths() {
+  return stories.map((s) => ({ params: { story: s.slug }, props: { story: s } }));
+}
+
+const { story } = Astro.props;
+---
+
+<Base title={story.title} description={story.blurb}>
+  <a class="back mono" href="/writing">← All writing</a>
+  <div class="top">
+    <div class="cover">
+      {story.cover ? <img src={story.cover} alt="" /> : <span>{story.title}</span>}
+    </div>
+    <div>
+      <p class="eyebrow">{story.status} · {story.chapters.length} chapters</p>
+      <h1>{story.title}</h1>
+      <p class="blurb">{story.blurb}</p>
+      <div class="tags">{story.tags.map((t) => <span class="chip">{t}</span>)}</div>
+      {
+        story.chapters[0] && (
+          <a class="btn start" href={`/writing/${story.slug}/${story.chapters[0].slug}`}>
+            Start reading
+            <span class="dot" aria-hidden="true">→</span>
+          </a>
+        )
+      }
+    </div>
+  </div>
+
+  <h2 class="toc-title">Table of contents</h2>
+  <ol class="toc">
+    {
+      story.chapters.map((c, i) => (
+        <li>
+          <a href={`/writing/${story.slug}/${c.slug}`}>
+            <span class="mono n">{String(i + 1).padStart(2, '0')}</span>
+            {c.title}
+          </a>
+        </li>
+      ))
+    }
+  </ol>
+</Base>
+
+<style>
+  .back {
+    font-size: 14px;
+    text-decoration: none;
+    color: var(--ink-2);
+  }
+
+  .top {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 40px;
+    max-width: 900px;
+    margin: 28px 0 56px;
+    align-items: start;
+  }
+
+  .cover {
+    aspect-ratio: 2 / 3;
+    border-radius: 6px 14px 14px 6px;
+    overflow: hidden;
+    background: linear-gradient(160deg, var(--accent-2), var(--accent) 60%, #a52e12);
+    box-shadow: inset 8px 0 0 rgba(0, 0, 0, 0.12), 0 20px 40px -20px rgba(23, 23, 26, 0.6);
+    display: flex;
+    align-items: flex-end;
+    padding: 18px;
+    color: #fff;
+    font-family: var(--font-serif);
+    font-size: 24px;
+  }
+
+  .cover img {
+    margin: -18px;
+    width: calc(100% + 36px);
+    height: calc(100% + 36px);
+    max-width: none;
+    object-fit: cover;
+  }
+
+  h1 {
+    font-family: var(--font-serif);
+    font-size: clamp(34px, 5vw, 54px);
+    font-weight: 600;
+    margin-top: 8px;
+  }
+
+  .blurb {
+    font-size: 18px;
+    color: var(--ink-2);
+  }
+
+  .tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+  }
+
+  .toc-title {
+    font-size: 22px;
+    margin-bottom: 12px;
+  }
+
+  .toc {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-width: 680px;
+  }
+
+  .toc a {
+    display: flex;
+    gap: 18px;
+    padding: 14px 4px;
+    border-bottom: 1px solid var(--line);
+    text-decoration: none;
+    font-size: 17px;
+  }
+
+  .toc a:hover {
+    color: var(--accent);
+  }
+
+  .n {
+    color: var(--ink-3);
+  }
+
+  @media (max-width: 640px) {
+    .top {
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+
+    .cover {
+      width: 160px;
+    }
+  }
+</style>

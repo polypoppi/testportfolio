@@ -1,0 +1,452 @@
+---
+import Base from '../layouts/Base.astro';
+import { profile, tools, highlights } from '../data/profile';
+
+// Scatter positions for the floating tool tiles (percent of hero box).
+const spots = [
+  { x: 14, y: 12 }, { x: 52, y: 4 }, { x: 80, y: 18 }, { x: 90, y: 54 },
+  { x: 6, y: 50 }, { x: 18, y: 84 }, { x: 66, y: 74 }, { x: 82, y: 86 },
+];
+const barcode = Array.from({ length: 34 }, (_, i) => [1, 3, 2, 1, 4, 2, 1, 2, 3][i % 9]);
+---
+
+<Base>
+  <section class="hero">
+    <a class="cta" href={`mailto:${profile.email}`}>
+      <span>Work<br />with me</span>
+      <svg viewBox="0 0 40 12" aria-hidden="true"><path d="M0 6h37M32 1l5 5-5 5" /></svg>
+    </a>
+
+    <div class="tiles" aria-hidden="true">
+      {
+        tools.map((t, i) => (
+          <span
+            class="tile"
+            style={`left:${spots[i].x}%;top:${spots[i].y}%;animation-delay:${i * -1.3}s`}
+            title={t.name}
+          >
+            {t.code}
+          </span>
+        ))
+      }
+    </div>
+
+    <div class="pass-wrap">
+      <span class="tab" aria-hidden="true"></span>
+      <article class="pass">
+        <div class="pass-main">
+          <div class="pass-head mono">
+            <span>Boarding pass</span>
+            <span>MG {profile.since}</span>
+          </div>
+          <h1 class="mono lines">
+            <span class="ln"><i>01</i>Hi, I'm <em>{profile.firstName}</em>.</span>
+            <span class="ln"><i>02</i>I keep flights <em>balanced</em></span>
+            <span class="ln"><i>03</i>and operations <em>safe</em>.</span>
+          </h1>
+          <dl class="fields mono">
+            <div><dt>From</dt><dd>KUL</dd></div>
+            <div><dt>To</dt><dd>Your team</dd></div>
+            <div><dt>Class</dt><dd>QA / SMS</dd></div>
+            <div><dt>Seat</dt><dd>8Y</dd></div>
+          </dl>
+        </div>
+        <div class="pass-stub mono">
+          <span class="stub-label">{profile.initials}</span>
+          <span class="barcode" aria-hidden="true">
+            {barcode.map((w) => <b style={`width:${w}px`} />)}
+          </span>
+          <span class="stub-gate">Gate 2018</span>
+        </div>
+      </article>
+      <p class="sub mono">I also turn paper processes into digital workflows…</p>
+    </div>
+
+    <a class="btn more" href="#overview">
+      Read more
+      <span class="dot" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 4v15M5 12l7 7 7-7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" /></svg>
+      </span>
+    </a>
+  </section>
+
+  <section id="overview" class="overview">
+    <p class="eyebrow">Currently</p>
+    <h2>{profile.role}<span class="at"> at {profile.company}</span></h2>
+    <p class="lede">{profile.intro}</p>
+    <ul class="stats">
+      {
+        highlights.map((h) => (
+          <li>
+            <strong>
+              {h.value}
+              <small>{h.unit}</small>
+            </strong>
+            <span>{h.label}</span>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+</Base>
+
+<style>
+  .hero {
+    position: relative;
+    min-height: calc(100vh - 64px);
+    display: grid;
+    place-items: center;
+    padding: 96px 0 120px;
+  }
+
+  .cta {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 22px;
+    border-radius: 26px;
+    background: var(--accent);
+    color: #fff;
+    text-decoration: none;
+    font-size: 22px;
+    line-height: 1.05;
+    box-shadow: 0 16px 40px -12px rgba(232, 70, 30, 0.55);
+    transition: transform 0.2s ease;
+  }
+
+  .cta:hover {
+    transform: translateY(-2px) rotate(-1deg);
+  }
+
+  .cta svg {
+    width: 34px;
+    stroke: #fff;
+    stroke-width: 1.6;
+    fill: none;
+  }
+
+  .tiles {
+    position: absolute;
+    inset: 40px 0 40px 0;
+    pointer-events: none;
+  }
+
+  .tile {
+    position: absolute;
+    display: grid;
+    place-items: center;
+    width: 58px;
+    height: 58px;
+    border: 2.5px solid #b9b6ad;
+    border-radius: 14px;
+    color: #a3a097;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 20px;
+    animation: drift 9s ease-in-out infinite;
+  }
+
+  .tile:nth-child(3n) {
+    border-radius: 50%;
+  }
+
+  .tile:nth-child(4n) {
+    background: #b9b6ad;
+    color: #fff;
+    border-radius: 6px;
+  }
+
+  @keyframes drift {
+    0%, 100% { transform: translate(0, 0) rotate(0); }
+    50% { transform: translate(6px, -10px) rotate(3deg); }
+  }
+
+  .pass-wrap {
+    position: relative;
+    z-index: 1;
+    width: min(640px, 100%);
+  }
+
+  .tab {
+    position: absolute;
+    top: -34px;
+    left: -34px;
+    width: 88px;
+    height: 88px;
+    border-radius: 16px;
+    background: var(--accent-2);
+    z-index: -1;
+  }
+
+  .pass {
+    display: grid;
+    grid-template-columns: 1fr 96px;
+    background: var(--card);
+    border: 2px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .pass-main {
+    padding: 22px 28px 22px;
+  }
+
+  .pass-head {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    padding-bottom: 14px;
+    border-bottom: 1.5px dashed var(--line);
+  }
+
+  .lines {
+    display: grid;
+    gap: 6px;
+    margin: 18px 0 20px;
+    font-size: clamp(20px, 3.1vw, 30px);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .ln i {
+    font-style: normal;
+    font-weight: 400;
+    color: var(--ink-3);
+    margin-right: 16px;
+    font-size: 0.8em;
+  }
+
+  .ln em {
+    font-style: normal;
+    color: var(--accent);
+  }
+
+  .fields {
+    display: grid;
+    grid-template-columns: repeat(4, auto);
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0;
+    padding-top: 14px;
+    border-top: 1.5px dashed var(--line);
+  }
+
+  .fields dt {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  .fields dd {
+    margin: 2px 0 0;
+    font-weight: 600;
+    font-size: 15px;
+  }
+
+  .pass-stub {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 22px 0;
+    border-left: 2px dashed var(--line);
+    background: var(--paper);
+  }
+
+  .pass-stub::before,
+  .pass-stub::after {
+    content: '';
+    position: absolute;
+    left: -11px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--paper);
+    border: 2px solid var(--line);
+  }
+
+  .pass-stub::before {
+    top: -12px;
+  }
+
+  .pass-stub::after {
+    bottom: -12px;
+  }
+
+  .stub-label {
+    font-weight: 600;
+    font-size: 20px;
+  }
+
+  .barcode {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 46px;
+  }
+
+  .barcode b {
+    display: block;
+    height: auto;
+    width: 100% !important;
+    background: var(--ink);
+  }
+
+  .barcode b:nth-child(odd) {
+    height: 2px;
+  }
+
+  .barcode b:nth-child(even) {
+    height: 1px;
+  }
+
+  .barcode b:nth-child(5n) {
+    height: 4px;
+  }
+
+  .stub-gate {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+  }
+
+  .sub {
+    margin: 22px 0 0;
+    text-align: center;
+    font-weight: 600;
+    font-size: clamp(15px, 1.8vw, 19px);
+  }
+
+  .more {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .more:hover {
+    transform: translate(-50%, -2px);
+  }
+
+  .overview {
+    max-width: 860px;
+    margin: 40px auto 0;
+    padding-top: 48px;
+    border-top: 1px solid var(--line);
+  }
+
+  .overview h2 {
+    margin-top: 10px;
+    font-size: clamp(28px, 4vw, 44px);
+    font-weight: 600;
+  }
+
+  .at {
+    color: var(--ink-3);
+  }
+
+  .lede {
+    font-size: 20px;
+    color: var(--ink-2);
+    max-width: 640px;
+  }
+
+  .stats {
+    list-style: none;
+    padding: 0;
+    margin: 36px 0 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+  }
+
+  .stats li {
+    padding: 20px 22px;
+    background: var(--card);
+    border: 1.5px solid var(--line);
+    border-radius: 18px;
+  }
+
+  .stats strong {
+    display: block;
+    font-size: 48px;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    font-weight: 700;
+  }
+
+  .stats small {
+    font-size: 18px;
+    color: var(--accent);
+    margin-left: 4px;
+    letter-spacing: 0;
+  }
+
+  .stats span {
+    color: var(--ink-2);
+    font-size: 15px;
+  }
+
+  @media (max-width: 860px) {
+    .hero {
+      min-height: auto;
+      padding: 72px 0 96px;
+    }
+
+    .cta {
+      font-size: 16px;
+      padding: 10px 16px;
+    }
+
+    .tiles {
+      display: none;
+    }
+
+    .tile {
+      width: 40px;
+      height: 40px;
+      font-size: 14px;
+      opacity: 0.6;
+    }
+
+    .tab {
+      top: -16px;
+      left: -8px;
+      width: 56px;
+      height: 56px;
+    }
+
+    .pass {
+      grid-template-columns: 1fr 56px;
+    }
+
+    .pass-main {
+      padding: 16px 18px;
+    }
+
+    .ln i {
+      margin-right: 10px;
+    }
+
+    .fields {
+      grid-template-columns: repeat(2, auto);
+      justify-content: start;
+      column-gap: 32px;
+    }
+
+    .barcode {
+      width: 28px;
+    }
+  }
+</style>

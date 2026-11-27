@@ -1,0 +1,97 @@
+---
+import Base from '../layouts/Base.astro';
+import { profile } from '../data/profile';
+---
+
+<Base title="Who am I?">
+  <header class="page-head">
+    <p class="eyebrow">{profile.location} · open to relocate</p>
+    <h1>Who am I?</h1>
+  </header>
+
+  <div class="about">
+    <div class="text">
+      <p class="big">
+        I’m {profile.firstName}, an aviation operations and quality professional. Since {profile.since} I’ve
+        worked across safety, quality assurance, centralised load control, airport operations and technical logistics.
+      </p>
+      <p>
+        Today I’m a Load Control Officer cum Quality Officer at Kris Business Hub. I coordinate Safety Management
+        System activities, plan audits, look after quality documentation and support load control for Singapore
+        Airlines flights. I also oversee 22 staff in the Load Control Department.
+      </p>
+      <p>
+        Before that I worked with Airbus Flight Hour Service, supporting airlines such as Cathay Pacific, British
+        Airways and Malaysia Airlines, and with Malaysia Airports in Sepang.
+      </p>
+      <p>
+        What ties it together is a liking for good process: clear SOPs, tidy records and digital tools that make
+        the right thing the easy thing to do. Away from work, I write fiction.
+      </p>
+    </div>
+
+    <aside class="card contact">
+      <p class="eyebrow">Get in touch</p>
+      <a class="line" href={`mailto:${profile.email}`}>{profile.email}</a>
+      <a class="line" href={profile.linkedin} target="_blank" rel="noopener">LinkedIn ↗</a>
+      <a class="btn" href={`mailto:${profile.email}`}>
+        Work with me
+        <span class="dot" aria-hidden="true">→</span>
+      </a>
+    </aside>
+  </div>
+</Base>
+
+<style>
+  .about {
+    display: grid;
+    grid-template-columns: minmax(0, 680px) 300px;
+    gap: 48px;
+    align-items: start;
+  }
+
+  .text p {
+    font-size: 18px;
+    color: var(--ink-2);
+  }
+
+  .text .big {
+    font-size: clamp(22px, 2.6vw, 28px);
+    line-height: 1.35;
+    color: var(--ink);
+    margin-top: 0;
+  }
+
+  .contact {
+    padding: 24px;
+    display: grid;
+    gap: 12px;
+    position: sticky;
+    top: 32px;
+  }
+
+  .line {
+    text-decoration: none;
+    font-weight: 500;
+    word-break: break-all;
+  }
+
+  .line:hover {
+    color: var(--accent);
+  }
+
+  .contact .btn {
+    margin-top: 8px;
+    justify-self: start;
+  }
+
+  @media (max-width: 960px) {
+    .about {
+      grid-template-columns: 1fr;
+    }
+
+    .contact {
+      position: static;
+    }
+  }
+</style>

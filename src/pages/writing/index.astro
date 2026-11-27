@@ -1,0 +1,127 @@
+---
+import Base from '../../layouts/Base.astro';
+import { stories } from '../../data/profile';
+---
+
+<Base title="Writing">
+  <header class="page-head">
+    <p class="eyebrow">Off duty</p>
+    <h1>Writing</h1>
+    <p>Stories I write outside the office, published chapter by chapter.</p>
+  </header>
+
+  <div class="shelf">
+    {
+      stories.map((s) => (
+        <a class="book" href={`/writing/${s.slug}`}>
+          <div class="cover">
+            {s.cover ? <img src={s.cover} alt="" /> : <span class="cover-title">{s.title}</span>}
+          </div>
+          <div class="info">
+            <h2>{s.title}</h2>
+            <p class="meta mono">
+              {s.chapters.length} {s.chapters.length === 1 ? 'chapter' : 'chapters'} · {s.status}
+            </p>
+            <p class="blurb">{s.blurb}</p>
+            <div class="tags">
+              {s.tags.map((t) => (
+                <span class="chip">{t}</span>
+              ))}
+            </div>
+          </div>
+        </a>
+      ))
+    }
+  </div>
+</Base>
+
+<style>
+  .shelf {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+    gap: 24px;
+    max-width: 1100px;
+  }
+
+  .book {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    gap: 22px;
+    text-decoration: none;
+    padding: 16px;
+    border-radius: 20px;
+    transition: background 0.2s ease;
+  }
+
+  .book:hover {
+    background: var(--card);
+  }
+
+  .cover {
+    aspect-ratio: 2 / 3;
+    border-radius: 6px 12px 12px 6px;
+    overflow: hidden;
+    background: linear-gradient(160deg, var(--accent-2), var(--accent) 60%, #a52e12);
+    box-shadow: inset 6px 0 0 rgba(0, 0, 0, 0.12), 0 14px 30px -16px rgba(23, 23, 26, 0.6);
+    display: flex;
+    align-items: flex-end;
+    padding: 14px;
+    transition: transform 0.25s ease;
+  }
+
+  .book:hover .cover {
+    transform: rotate(-2deg) translateY(-4px);
+  }
+
+  .cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    margin: -14px;
+    width: calc(100% + 28px);
+    height: calc(100% + 28px);
+    max-width: none;
+  }
+
+  .cover-title {
+    font-family: var(--font-serif);
+    color: #fff;
+    font-size: 20px;
+    line-height: 1.15;
+  }
+
+  .info h2 {
+    font-family: var(--font-serif);
+    font-size: 26px;
+    font-weight: 600;
+  }
+
+  .meta {
+    margin: 6px 0 0;
+    font-size: 13px;
+    color: var(--ink-3);
+  }
+
+  .blurb {
+    color: var(--ink-2);
+    font-size: 16px;
+  }
+
+  .tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 560px) {
+    .shelf {
+      grid-template-columns: 1fr;
+    }
+
+    .book {
+      grid-template-columns: 110px 1fr;
+      gap: 16px;
+      padding: 0;
+    }
+  }
+</style>

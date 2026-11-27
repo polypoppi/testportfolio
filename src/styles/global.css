@@ -1,0 +1,144 @@
+:root {
+  --paper: #fbfaf7;
+  --paper-2: #f3f1ec;
+  --card: #ffffff;
+  --ink: #17171a;
+  --ink-2: #55545a;
+  --ink-3: #9a9890;
+  --line: #e4e1d9;
+  --accent: #e8461e;
+  --accent-2: #f2802b;
+  --accent-soft: #fde9e1;
+  --sky: #9fcdd3;
+
+  --font-sans: 'Familjen Grotesk', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --font-serif: 'Literata', Georgia, serif;
+
+  --radius: 22px;
+  --sidebar: 248px;
+  --shadow: 0 1px 0 rgba(23, 23, 26, 0.04), 0 18px 40px -24px rgba(23, 23, 26, 0.25);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 10px 10px 22px;
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+  text-decoration: none;
+  font-weight: 500;
+  transition: transform 0.2s ease;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+}
+
+.btn .dot {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+.page-head {
+  max-width: 860px;
+  margin: 24px 0 48px;
+}
+
+.page-head h1 {
+  font-size: clamp(36px, 6vw, 64px);
+  font-weight: 700;
+  margin-top: 10px;
+}
+
+.page-head p {
+  font-size: 19px;
+  color: var(--ink-2);
+  max-width: 620px;
+}
+
+.chip {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--paper-2);
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+.card {
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: 20px;
+}

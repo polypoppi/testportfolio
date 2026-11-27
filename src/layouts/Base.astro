@@ -1,0 +1,267 @@
+---
+import '../styles/global.css';
+import { profile } from '../data/profile';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title, description = profile.intro } = Astro.props;
+const pageTitle = title ? `${title} · ${profile.name}` : `${profile.name} · ${profile.title}`;
+const path = Astro.url.pathname.replace(/\/$/, '') || '/';
+
+const nav = [
+  { href: '/', label: 'Home', icon: 'home' },
+  { href: '/experience', label: 'Experience', icon: 'route' },
+  { href: '/projects', label: 'Projects', icon: 'stack' },
+  { href: '/writing', label: 'Writing', icon: 'book' },
+  { href: '/about', label: 'Who am I?', icon: 'face' },
+];
+
+const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWith(href));
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Literata:opsz,wght@7..72,400;7..72,600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <a href="/" class="avatar" aria-label="Home">
+          {
+            profile.photo ? (
+              <img src={profile.photo} alt={profile.name} width="168" height="168" />
+            ) : (
+              <span class="initials">{profile.initials}</span>
+            )
+          }
+        </a>
+
+        <nav class="nav" aria-label="Main">
+          {
+            nav.map((item) => (
+              <a href={item.href} class:list={['nav-item', { active: isActive(item.href) }]}>
+                <span class="nav-icon" aria-hidden="true">
+                  {item.icon === 'home' && (
+                    <svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z" /></svg>
+                  )}
+                  {item.icon === 'route' && (
+                    <svg viewBox="0 0 24 24"><circle cx="6" cy="18" r="3" /><circle cx="18" cy="6" r="3" /><path d="M9 18h5a4 4 0 0 0 0-8h-4a4 4 0 0 1 0-8h5" fill="none" stroke="currentColor" stroke-width="2" /></svg>
+                  )}
+                  {item.icon === 'stack' && (
+                    <svg viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5z" /><path d="m3 13 9 5 9-5" fill="none" stroke="currentColor" stroke-width="2" /></svg>
+                  )}
+                  {item.icon === 'book' && (
+                    <svg viewBox="0 0 24 24"><path d="M4 4h6a3 3 0 0 1 2 1 3 3 0 0 1 2-1h6v15h-6a2 2 0 0 0-2 2 2 2 0 0 0-2-2H4z" /></svg>
+                  )}
+                  {item.icon === 'face' && (
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5" /><circle cx="9" cy="11" r="1.4" fill="#fff" /><circle cx="15" cy="11" r="1.4" fill="#fff" /></svg>
+                  )}
+                </span>
+                {item.label}
+              </a>
+            ))
+          }
+        </nav>
+
+        <div class="socials">
+          <a href={profile.linkedin} aria-label="LinkedIn" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="4" /><path d="M7 10v7M7 7v.01M11 17v-4a2 2 0 0 1 4 0v4M11 10v7" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none" /></svg>
+          </a>
+          <a href={profile.github} aria-label="GitHub" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.4-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.9.8.1-.6.3-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5a3.9 3.9 0 0 1 1-2.7 3.6 3.6 0 0 1 .1-2.7s.8-.3 2.8 1a9.6 9.6 0 0 1 5 0c1.9-1.3 2.7-1 2.7-1 .6 1.4.2 2.4.1 2.7a3.9 3.9 0 0 1 1 2.7c0 3.9-2.3 4.7-4.6 5 .4.3.7.9.7 1.9V21c0 .3.2.6.7.5A10 10 0 0 0 12 2z" /></svg>
+          </a>
+          <a href={`mailto:${profile.email}`} aria-label="Email">
+            <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="3" /><path d="m3 6 9 7 9-7" stroke="#fff" stroke-width="2" fill="none" /></svg>
+          </a>
+        </div>
+      </aside>
+
+      <main class="main">
+        <slot />
+      </main>
+    </div>
+  </body>
+</html>
+
+<style>
+  .shell {
+    display: grid;
+    grid-template-columns: var(--sidebar) 1fr;
+    min-height: 100vh;
+  }
+
+  .sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 32px 28px;
+    gap: 40px;
+  }
+
+  .avatar {
+    width: 168px;
+    height: 168px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: radial-gradient(circle at 28% 62%, var(--accent-2) 0%, #fbd6bd 38%, var(--paper-2) 72%);
+    display: grid;
+    place-items: center;
+    text-decoration: none;
+    flex-shrink: 0;
+  }
+
+  .avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .initials {
+    font-size: 54px;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    color: var(--ink);
+  }
+
+  .nav {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .nav-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 14px 8px 8px;
+    border-radius: 14px;
+    text-decoration: none;
+    font-size: 18px;
+    width: fit-content;
+    transition: background 0.15s ease;
+  }
+
+  .nav-item:hover {
+    background: var(--paper-2);
+  }
+
+  .nav-item.active {
+    color: var(--accent);
+  }
+
+  .nav-item.active .nav-label,
+  .nav-item.active {
+    background: var(--accent-soft);
+  }
+
+  .nav-icon svg {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+    display: block;
+  }
+
+  .nav-item:not(.active) .nav-icon {
+    color: var(--ink);
+  }
+
+  .socials {
+    margin-top: auto;
+    display: grid;
+    grid-template-columns: repeat(3, 36px);
+    gap: 16px;
+  }
+
+  .socials svg {
+    width: 32px;
+    height: 32px;
+    fill: var(--ink);
+    transition: fill 0.15s ease;
+  }
+
+  .socials a:hover svg {
+    fill: var(--accent);
+  }
+
+  .main {
+    min-width: 0;
+    padding: 32px clamp(20px, 4vw, 56px) 64px;
+  }
+
+  @media (max-width: 860px) {
+    .shell {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .sidebar {
+      position: static;
+      height: auto;
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+      padding: 16px;
+      gap: 12px 16px;
+      min-width: 0;
+    }
+
+    .avatar {
+      width: 52px;
+      height: 52px;
+    }
+
+    .initials {
+      font-size: 18px;
+    }
+
+    .socials {
+      margin: 0 0 0 auto;
+      grid-template-columns: repeat(3, 26px);
+      gap: 10px;
+    }
+
+    .socials svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .nav {
+      order: 3;
+      flex-direction: row;
+      overflow-x: auto;
+      width: 100%;
+      gap: 4px;
+      scrollbar-width: none;
+    }
+
+    .nav-item {
+      font-size: 15px;
+      white-space: nowrap;
+      padding: 6px 12px 6px 6px;
+    }
+
+    .nav-icon svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .main {
+      padding: 8px 16px 48px;
+    }
+  }
+</style>

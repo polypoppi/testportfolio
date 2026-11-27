@@ -1,0 +1,49 @@
+---
+import Base from '../../layouts/Base.astro';
+import { projects } from '../../data/profile';
+
+export function getStaticPaths() {
+  return projects.map((p) => ({ params: { slug: p.slug }, props: { project: p } }));
+}
+
+const { project } = Astro.props;
+---
+
+<Base title={project.title} description={project.summary}>
+  <a class="back mono" href="/projects">← All projects</a>
+  <header class="page-head">
+    <p class="eyebrow">{project.org} · {project.year}</p>
+    <h1>{project.title}</h1>
+    <p>{project.summary}</p>
+  </header>
+  <article class="body">
+    {project.body.map((para) => <p>{para}</p>)}
+    <div class="stack">
+      {project.stack.map((s) => <span class="chip">{s}</span>)}
+    </div>
+  </article>
+</Base>
+
+<style>
+  .back {
+    font-size: 14px;
+    text-decoration: none;
+    color: var(--ink-2);
+  }
+
+  .back:hover {
+    color: var(--accent);
+  }
+
+  .body {
+    max-width: 680px;
+    font-size: 18px;
+  }
+
+  .stack {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 28px;
+  }
+</style>

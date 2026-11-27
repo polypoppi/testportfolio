@@ -1,0 +1,305 @@
+---
+import Base from '../layouts/Base.astro';
+import { experience, skillGroups, education, certifications, profile } from '../data/profile';
+---
+
+<Base title="Experience" description={`Career of ${profile.name} in aviation quality, safety and load control.`}>
+  <header class="page-head">
+    <p class="eyebrow">Flight log · since {profile.since}</p>
+    <h1>Experience</h1>
+    <p>From customer service to the load control office, a route through airport operations, airworthiness and quality.</p>
+  </header>
+
+  <ol class="log">
+    {
+      experience.map((job, i) => (
+        <li class="leg">
+          <div class="when mono">
+            <span>{job.start}</span>
+            <span class="to">{job.end}</span>
+          </div>
+          <div class="marker" aria-hidden="true">
+            <span class:list={['pin', { now: i === 0 }]} />
+          </div>
+          <div class="what card">
+            <span class="chip">{job.tag}</span>
+            <h2>{job.role}</h2>
+            <p class="org">
+              {job.company} <span>· {job.place}</span>
+            </p>
+            <ul>
+              {job.points.map((p) => (
+                <li>{p}</li>
+              ))}
+            </ul>
+          </div>
+        </li>
+      ))
+    }
+  </ol>
+
+  <section class="block" id="skills">
+    <p class="eyebrow">Toolkit</p>
+    <h2 class="block-title">Skills</h2>
+    <div class="skills">
+      {
+        skillGroups.map((g) => (
+          <div class="card group">
+            <h3>{g.name}</h3>
+            <ul>
+              {g.items.map((s) => (
+                <li>{s}</li>
+              ))}
+            </ul>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="block two">
+    <div>
+      <p class="eyebrow">Education</p>
+      <h2 class="block-title">Studied</h2>
+      {
+        education.map((e) => (
+          <div class="edu">
+            <strong>{e.title}</strong>
+            <span>
+              {e.school}
+              {e.years && ` · ${e.years}`}
+            </span>
+          </div>
+        ))
+      }
+    </div>
+    <div>
+      <p class="eyebrow">Certified</p>
+      <h2 class="block-title">Licences & training</h2>
+      <ul class="certs">
+        {certifications.map((c) => <li>{c}</li>)}
+      </ul>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .log {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-width: 980px;
+  }
+
+  .leg {
+    display: grid;
+    grid-template-columns: 120px 32px 1fr;
+    gap: 0 20px;
+  }
+
+  .when {
+    display: flex;
+    flex-direction: column;
+    text-align: right;
+    font-size: 14px;
+    padding-top: 22px;
+    color: var(--ink-2);
+  }
+
+  .when .to {
+    color: var(--ink-3);
+  }
+
+  .marker {
+    position: relative;
+    display: flex;
+    justify-content: center;
+  }
+
+  .marker::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-left: 2px dashed var(--line);
+  }
+
+  .leg:first-child .marker::before {
+    top: 28px;
+  }
+
+  .leg:last-child .marker::before {
+    bottom: calc(100% - 28px);
+  }
+
+  .pin {
+    position: relative;
+    margin-top: 22px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--paper);
+    border: 3px solid var(--ink-3);
+  }
+
+  .pin.now {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 6px var(--accent-soft);
+  }
+
+  .what {
+    padding: 22px 26px;
+    margin-bottom: 20px;
+  }
+
+  .what h2 {
+    margin-top: 12px;
+    font-size: 24px;
+    font-weight: 600;
+  }
+
+  .org {
+    margin: 4px 0 0;
+    font-weight: 500;
+  }
+
+  .org span {
+    color: var(--ink-3);
+    font-weight: 400;
+  }
+
+  .what ul {
+    margin: 14px 0 0;
+    padding-left: 18px;
+    color: var(--ink-2);
+    font-size: 16px;
+  }
+
+  .what li + li {
+    margin-top: 6px;
+  }
+
+  .what li::marker {
+    color: var(--accent);
+  }
+
+  .block {
+    max-width: 980px;
+    margin-top: 80px;
+  }
+
+  .block-title {
+    font-size: 34px;
+    margin: 8px 0 24px;
+  }
+
+  .skills {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+  }
+
+  .group {
+    padding: 22px;
+  }
+
+  .group h3 {
+    font-size: 18px;
+    margin-bottom: 14px;
+  }
+
+  .group ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .group li {
+    padding: 5px 12px;
+    border: 1.5px solid var(--line);
+    border-radius: 999px;
+    font-size: 14px;
+  }
+
+  .two {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+  }
+
+  .edu {
+    display: grid;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .edu span {
+    color: var(--ink-2);
+    font-size: 15px;
+  }
+
+  .certs {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .certs li {
+    padding: 12px 0 12px 28px;
+    border-bottom: 1px solid var(--line);
+    position: relative;
+  }
+
+  .certs li::before {
+    content: '';
+    position: absolute;
+    left: 2px;
+    top: 19px;
+    width: 12px;
+    height: 7px;
+    border-left: 2.5px solid var(--accent);
+    border-bottom: 2.5px solid var(--accent);
+    transform: rotate(-45deg);
+  }
+
+  @media (max-width: 720px) {
+    .leg {
+      grid-template-columns: 20px 1fr;
+      gap: 0 12px;
+    }
+
+    .when {
+      grid-column: 2;
+      flex-direction: row;
+      gap: 6px;
+      text-align: left;
+      padding-top: 0;
+    }
+
+    .when .to::before {
+      content: '– ';
+    }
+
+    .marker {
+      grid-row: 1 / span 2;
+      grid-column: 1;
+    }
+
+    .pin {
+      margin-top: 4px;
+    }
+
+    .what {
+      grid-column: 2;
+      margin-top: 8px;
+      padding: 18px;
+    }
+
+    .two {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

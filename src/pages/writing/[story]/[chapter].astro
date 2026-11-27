@@ -1,0 +1,151 @@
+---
+import Base from '../../../layouts/Base.astro';
+import { stories } from '../../../data/profile';
+
+export function getStaticPaths() {
+  return stories.flatMap((s) =>
+    s.chapters.map((c, i) => ({
+      params: { story: s.slug, chapter: c.slug },
+      props: { story: s, index: i },
+    })),
+  );
+}
+
+const { story, index } = Astro.props;
+const chapter = story.chapters[index];
+const prev = story.chapters[index - 1];
+const next = story.chapters[index + 1];
+const words = chapter.body.join(' ').split(/\s+/).length;
+const minutes = Math.max(1, Math.round(words / 220));
+---
+
+<Base title={`${chapter.title} · ${story.title}`}>
+  <div class="progress" aria-hidden="true"><span id="bar"></span></div>
+  <article class="reader">
+    <a class="back mono" href={`/writing/${story.slug}`}>← {story.title}</a>
+    <p class="eyebrow">Chapter {index + 1} of {story.chapters.length} · {minutes} min read</p>
+    <h1>{chapter.title}</h1>
+    <div class="prose">
+      {chapter.body.map((p) => <p>{p}</p>)}
+    </div>
+
+    <nav class="pager" aria-label="Chapters">
+      {
+        prev ? (
+          <a href={`/writing/${story.slug}/${prev.slug}`} class="prev">
+            <span class="eyebrow">Previous</span>
+            {prev.title}
+          </a>
+        ) : (
+          <span />
+        )
+      }
+      {
+        next ? (
+          <a href={`/writing/${story.slug}/${next.slug}`} class="next">
+            <span class="eyebrow">Next</span>
+            {next.title}
+          </a>
+        ) : (
+          <a href={`/writing/${story.slug}`} class="next">
+            <span class="eyebrow">The end, for now</span>
+            Back to contents
+          </a>
+        )
+      }
+    </nav>
+  </article>
+</Base>
+
+<script>
+  const bar = document.getElementById('bar');
+  const update = () => {
+    const max = document.documentElement.scrollHeight - innerHeight;
+    if (bar) bar.style.width = `${max > 0 ? (scrollY / max) * 100 : 100}%`;
+  };
+  addEventListener('scroll', update, { passive: true });
+  update();
+</script>
+
+<style>
+  .progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    z-index: 10;
+  }
+
+  .progress span {
+    display: block;
+    height: 100%;
+    width: 0;
+    background: var(--accent);
+  }
+
+  .reader {
+    max-width: 680px;
+    margin: 0 auto;
+    padding-top: 12px;
+  }
+
+  .back {
+    display: inline-block;
+    margin-bottom: 32px;
+    font-size: 14px;
+    text-decoration: none;
+    color: var(--ink-2);
+  }
+
+  h1 {
+    font-family: var(--font-serif);
+    font-size: clamp(32px, 5vw, 46px);
+    font-weight: 600;
+    margin: 10px 0 36px;
+  }
+
+  .prose {
+    font-family: var(--font-serif);
+    font-size: 20px;
+    line-height: 1.8;
+  }
+
+  .prose p {
+    margin: 0 0 1.3em;
+  }
+
+  .pager {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+  }
+
+  .pager a {
+    display: grid;
+    gap: 4px;
+    padding: 16px 18px;
+    border-radius: 16px;
+    text-decoration: none;
+    font-weight: 600;
+    background: var(--card);
+    border: 1.5px solid var(--line);
+  }
+
+  .pager a:hover {
+    border-color: var(--accent);
+  }
+
+  .next {
+    text-align: right;
+  }
+
+  @media (max-width: 560px) {
+    .prose {
+      font-size: 18px;
+    }
+  }
+</style>
