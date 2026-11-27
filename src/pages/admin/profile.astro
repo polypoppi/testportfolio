@@ -28,8 +28,11 @@ if (Astro.request.method === 'POST') {
   const hv = all('h_value'), hu = all('h_unit'), hl = all('h_label');
   await setSetting('highlights', hv.map((value, i) => ({ value, unit: hu[i] ?? '', label: hl[i] ?? '' })).filter((h) => h.value || h.label));
 
-  const tc = all('t_code'), tn = all('t_name');
-  await setSetting('tools', tc.map((code, i) => ({ code: code.slice(0, 3), name: tn[i] ?? '' })).filter((t) => t.code));
+  const tc = all('t_code'), tn = all('t_name'), tg = all('t_logo');
+  await setSetting(
+    'tools',
+    tc.map((code, i) => ({ code: code.slice(0, 3), name: tn[i] ?? '', logo: tg[i] ?? '' })).filter((t) => t.code || t.logo),
+  );
 
   const gn = all('g_name'), gi = all('g_items');
   await setSetting(
@@ -129,13 +132,25 @@ const { profile: p, highlights, tools, skills, education, certifications } = awa
 
     <section class="panel">
       <h2>Floating tool tiles</h2>
-      <p class="hint">The little tiles around the boarding pass on the home page. Up to 8 are shown; the code is 1–3 letters.</p>
+      <p class="hint">The floating tiles around the boarding pass on the home page: companies you’ve worked with and tools you use. Click a tile to upload its logo (shown in grey); without a logo, the letters are shown. The first 12 appear.</p>
       <div id="tools" class="tools">
         {
           tools.map((t) => (
             <div class="row tl" data-row>
-              <input type="text" name="t_code" value={t.code} maxlength="3" aria-label="Code" />
-              <input type="text" name="t_name" value={t.name} aria-label="Tool name" />
+              <div class="upload mini" data-upload>
+                <img alt="" hidden />
+                <input type="hidden" name="t_logo" value={t.logo ?? ''} />
+                <label class="pick" title="Upload a logo">
+                  <span>{t.code}</span>
+                  <input type="file" accept="image/*" />
+                </label>
+                <span class="up-status" hidden></span>
+                <button class="linkish" data-clear hidden title="Use letters instead">✕ logo</button>
+              </div>
+              <div class="tl-text">
+                <input type="text" name="t_name" value={t.name} aria-label="Name" placeholder="Name" />
+                <input type="text" name="t_code" value={t.code} maxlength="3" aria-label="Letters" placeholder="Letters" />
+              </div>
               <button class="danger small" data-remove title="Remove">✕</button>
             </div>
           ))
@@ -144,8 +159,12 @@ const { profile: p, highlights, tools, skills, education, certifications } = awa
       <button class="small" data-add="tpl-tl" data-into="#tools">+ Add tool</button>
       <template id="tpl-tl">
         <div class="row tl" data-row>
-          <input type="text" name="t_code" maxlength="3" aria-label="Code" placeholder="PA" />
-          <input type="text" name="t_name" aria-label="Tool name" placeholder="Power Apps" />
+          <div class="tl-text">
+            <input type="hidden" name="t_logo" value="" />
+            <input type="text" name="t_name" aria-label="Name" placeholder="Name, e.g. Power Apps" />
+            <input type="text" name="t_code" maxlength="3" aria-label="Letters" placeholder="Letters, e.g. PA" />
+          </div>
+          <span class="hint">Save first, then add a logo</span>
           <button class="danger small" data-remove title="Remove">✕</button>
         </div>
       </template>
@@ -232,8 +251,62 @@ const { profile: p, highlights, tools, skills, education, certifications } = awa
   }
 
   .tl {
-    grid-template-columns: 64px minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
+  }
+
+  .tl-text {
+    display: grid;
+    gap: 6px;
+  }
+
+  .tl-text input[name='t_code'] {
+    width: 96px;
+    padding: 6px 10px;
+    font-size: 14px;
+  }
+
+  .mini {
+    position: relative;
+    display: grid;
+    gap: 4px;
+    justify-items: center;
+  }
+
+  .mini img {
+    position: absolute;
+    top: 0;
+    width: 56px !important;
+    height: 56px !important;
+    padding: 6px;
+    object-fit: contain !important;
+    background: #fff;
+    pointer-events: none;
+  }
+
+  .pick {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border: 2px dashed var(--line);
+    border-radius: 12px;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    color: var(--ink-3);
+    cursor: pointer;
+  }
+
+  .pick:hover {
+    border-color: var(--accent);
+  }
+
+  .pick input {
+    display: none;
+  }
+
+  .mini .linkish {
+    font-size: 12px;
   }
 
   .skill-grid {

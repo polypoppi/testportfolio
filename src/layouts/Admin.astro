@@ -140,6 +140,7 @@ const nav = [
         file.addEventListener('change', async () => {
           const f = file.files?.[0];
           if (!f) return;
+          status.hidden = false;
           status.textContent = 'Uploading…';
           const body = new FormData();
           body.append('file', await shrink(f));

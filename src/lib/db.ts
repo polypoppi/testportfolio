@@ -18,7 +18,7 @@ export type Profile = {
   photo: string;
   intro: string;
 };
-export type Tool = { code: string; name: string };
+export type Tool = { code: string; name: string; logo?: string };
 export type Highlight = { value: string; unit: string; label: string };
 export type SkillGroup = { name: string; items: string[] };
 export type Education = { title: string; school: string; years: string };
