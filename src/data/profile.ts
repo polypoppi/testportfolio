@@ -13,7 +13,7 @@ export const profile = {
   email: 'muslihuddin.ghazali@gmail.com',
   linkedin: 'https://www.linkedin.com/in/muslihuddinghazali/',
   github: 'https://github.com/polypoppi',
-  photo: '' as string, // set once the photo is uploaded
+  photo: '/photo.webp' as string, // replaceable from the admin
   intro:
     'I keep flights balanced and operations safe. Eight years across load control, quality assurance and airport operations, plus a habit of turning paper processes into digital ones.',
 };
