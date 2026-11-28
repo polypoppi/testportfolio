@@ -1,0 +1,328 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import { getSettings, setSetting } from '../../lib/db';
+
+if (Astro.request.method === 'POST') {
+  const fd = await Astro.request.formData();
+  const s = (k: string) => String(fd.get(k) ?? '').trim();
+  const all = (k: string) => fd.getAll(k).map((v) => String(v).trim());
+  const name = s('name');
+
+  await setSetting('profile', {
+    name,
+    fullName: s('fullName'),
+    firstName: s('firstName') || name.split(' ')[0],
+    initials: s('initials') || name.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase(),
+    title: s('title'),
+    role: s('role'),
+    company: s('company'),
+    location: s('location'),
+    since: Number(s('since')) || new Date().getFullYear(),
+    email: s('email'),
+    linkedin: s('linkedin'),
+    github: s('github'),
+    photo: s('photo'),
+    intro: s('intro'),
+  });
+
+  const hv = all('h_value'), hu = all('h_unit'), hl = all('h_label');
+  await setSetting('highlights', hv.map((value, i) => ({ value, unit: hu[i] ?? '', label: hl[i] ?? '' })).filter((h) => h.value || h.label));
+
+  const tc = all('t_code'), tn = all('t_name'), tg = all('t_logo');
+  await setSetting(
+    'tools',
+    tc.map((code, i) => ({ code: code.slice(0, 3), name: tn[i] ?? '', logo: tg[i] ?? '' })).filter((t) => t.code || t.logo),
+  );
+
+  const gn = all('g_name'), gi = all('g_items');
+  await setSetting(
+    'skills',
+    gn
+      .map((name, i) => ({ name, items: (gi[i] ?? '').split('\n').map((x) => x.trim()).filter(Boolean) }))
+      .filter((g) => g.name || g.items.length),
+  );
+
+  const et = all('e_title'), es = all('e_school'), ey = all('e_years');
+  await setSetting('education', et.map((title, i) => ({ title, school: es[i] ?? '', years: ey[i] ?? '' })).filter((e) => e.title));
+
+  await setSetting('certifications', s('certifications').split('\n').map((x) => x.trim()).filter(Boolean));
+
+  return Astro.redirect('/admin/profile?saved=1');
+}
+
+const { profile: p, highlights, tools, skills, education, certifications } = await getSettings();
+---
+
+<Admin title="Profile & skills">
+  <div class="a-head">
+    <div>
+      <h1>Profile & skills</h1>
+      <p>Your name, intro, photo and everything on the Home, Experience and About pages that isn’t a job or project.</p>
+    </div>
+  </div>
+
+  <form method="post">
+    <section class="panel">
+      <h2>About you</h2>
+      <p class="hint">Shown in the sidebar, the home page and the About page.</p>
+      <div class="field">
+        <span>Photo</span>
+        <div class="upload" data-upload>
+          <img alt="" hidden />
+          <input type="hidden" name="photo" value={p.photo} />
+          <div>
+            <input type="file" accept="image/*" />
+            <p class="up-status">A square photo works best.</p>
+            <button class="linkish" data-clear hidden>Remove photo</button>
+          </div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <label class="field"><span>Display name</span><input type="text" name="name" value={p.name} required /></label>
+        <label class="field"><span>Full name</span><input type="text" name="fullName" value={p.fullName} /></label>
+        <label class="field"><span>First name <small class="hint">(used in “Hi, I’m …”)</small></span><input type="text" name="firstName" value={p.firstName} /></label>
+        <label class="field"><span>Initials <small class="hint">(shown when there’s no photo)</small></span><input type="text" name="initials" value={p.initials} maxlength="3" /></label>
+        <label class="field"><span>Headline</span><input type="text" name="title" value={p.title} /></label>
+        <label class="field"><span>Location</span><input type="text" name="location" value={p.location} /></label>
+        <label class="field"><span>Current role</span><input type="text" name="role" value={p.role} /></label>
+        <label class="field"><span>Current company</span><input type="text" name="company" value={p.company} /></label>
+        <label class="field"><span>Working since <small class="hint">(year)</small></span><input type="number" name="since" value={p.since} min="1950" max="2100" /></label>
+      </div>
+      <label class="field">
+        <span>Short intro</span>
+        <textarea name="intro" rows="3">{p.intro}</textarea>
+      </label>
+    </section>
+
+    <section class="panel">
+      <h2>Contact links</h2>
+      <p class="hint">Shown as icons in the sidebar. Your phone number is never shown.</p>
+      <div class="grid-3">
+        <label class="field"><span>Email</span><input type="email" name="email" value={p.email} /></label>
+        <label class="field"><span>LinkedIn URL</span><input type="url" name="linkedin" value={p.linkedin} /></label>
+        <label class="field"><span>GitHub URL</span><input type="url" name="github" value={p.github} /></label>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Highlights</h2>
+      <p class="hint">The big numbers under “Currently” on the home page.</p>
+      <div id="highlights">
+        {
+          highlights.map((h) => (
+            <div class="row hl" data-row>
+              <label class="field"><span>Number</span><input type="text" name="h_value" value={h.value} /></label>
+              <label class="field"><span>Unit</span><input type="text" name="h_unit" value={h.unit} placeholder="yrs" /></label>
+              <label class="field"><span>Label</span><input type="text" name="h_label" value={h.label} /></label>
+              <button class="danger small" data-remove title="Remove">✕</button>
+            </div>
+          ))
+        }
+      </div>
+      <button class="small" data-add="tpl-hl" data-into="#highlights">+ Add highlight</button>
+      <template id="tpl-hl">
+        <div class="row hl" data-row>
+          <label class="field"><span>Number</span><input type="text" name="h_value" /></label>
+          <label class="field"><span>Unit</span><input type="text" name="h_unit" placeholder="yrs" /></label>
+          <label class="field"><span>Label</span><input type="text" name="h_label" /></label>
+          <button class="danger small" data-remove title="Remove">✕</button>
+        </div>
+      </template>
+    </section>
+
+    <section class="panel">
+      <h2>Floating tool tiles</h2>
+      <p class="hint">The floating tiles around the boarding pass on the home page: companies you’ve worked with and tools you use. Click a tile to upload its logo (shown in grey); without a logo, the letters are shown. The first 12 appear.</p>
+      <div id="tools" class="tools">
+        {
+          tools.map((t) => (
+            <div class="row tl" data-row>
+              <div class="upload mini" data-upload>
+                <img alt="" hidden />
+                <input type="hidden" name="t_logo" value={t.logo ?? ''} />
+                <label class="pick" title="Upload a logo">
+                  <span>{t.code}</span>
+                  <input type="file" accept="image/*" />
+                </label>
+                <span class="up-status" hidden></span>
+                <button class="linkish" data-clear hidden title="Use letters instead">✕ logo</button>
+              </div>
+              <div class="tl-text">
+                <input type="text" name="t_name" value={t.name} aria-label="Name" placeholder="Name" />
+                <input type="text" name="t_code" value={t.code} maxlength="3" aria-label="Letters" placeholder="Letters" />
+              </div>
+              <button class="danger small" data-remove title="Remove">✕</button>
+            </div>
+          ))
+        }
+      </div>
+      <button class="small" data-add="tpl-tl" data-into="#tools">+ Add tool</button>
+      <template id="tpl-tl">
+        <div class="row tl" data-row>
+          <div class="tl-text">
+            <input type="hidden" name="t_logo" value="" />
+            <input type="text" name="t_name" aria-label="Name" placeholder="Name, e.g. Power Apps" />
+            <input type="text" name="t_code" maxlength="3" aria-label="Letters" placeholder="Letters, e.g. PA" />
+          </div>
+          <span class="hint">Save first, then add a logo</span>
+          <button class="danger small" data-remove title="Remove">✕</button>
+        </div>
+      </template>
+    </section>
+
+    <section class="panel">
+      <h2>Skills</h2>
+      <p class="hint">Groups of skills on the Experience page. One skill per line.</p>
+      <div id="skills" class="skill-grid">
+        {
+          skills.map((g) => (
+            <div class="row" data-row>
+              <label class="field"><span>Group</span><input type="text" name="g_name" value={g.name} /></label>
+              <label class="field"><span>Skills</span><textarea name="g_items" rows="6">{g.items.join('\n')}</textarea></label>
+              <button class="danger small" data-remove>Remove group</button>
+            </div>
+          ))
+        }
+      </div>
+      <button class="small" data-add="tpl-sk" data-into="#skills">+ Add group</button>
+      <template id="tpl-sk">
+        <div class="row" data-row>
+          <label class="field"><span>Group</span><input type="text" name="g_name" /></label>
+          <label class="field"><span>Skills</span><textarea name="g_items" rows="6"></textarea></label>
+          <button class="danger small" data-remove>Remove group</button>
+        </div>
+      </template>
+    </section>
+
+    <section class="panel">
+      <h2>Education</h2>
+      <div id="edu">
+        {
+          education.map((e) => (
+            <div class="row ed" data-row>
+              <label class="field"><span>Qualification</span><input type="text" name="e_title" value={e.title} /></label>
+              <label class="field"><span>School</span><input type="text" name="e_school" value={e.school} /></label>
+              <label class="field"><span>Years</span><input type="text" name="e_years" value={e.years} placeholder="2014 – 2017" /></label>
+              <button class="danger small" data-remove title="Remove">✕</button>
+            </div>
+          ))
+        }
+      </div>
+      <button class="small" data-add="tpl-ed" data-into="#edu">+ Add education</button>
+      <template id="tpl-ed">
+        <div class="row ed" data-row>
+          <label class="field"><span>Qualification</span><input type="text" name="e_title" /></label>
+          <label class="field"><span>School</span><input type="text" name="e_school" /></label>
+          <label class="field"><span>Years</span><input type="text" name="e_years" placeholder="2014 – 2017" /></label>
+          <button class="danger small" data-remove title="Remove">✕</button>
+        </div>
+      </template>
+    </section>
+
+    <section class="panel">
+      <h2>Licences & training</h2>
+      <label class="field">
+        <span>One per line</span>
+        <textarea name="certifications" rows="6">{certifications.join('\n')}</textarea>
+      </label>
+    </section>
+
+    <div class="savebar">
+      <button class="primary" type="submit">Save changes</button>
+    </div>
+  </form>
+</Admin>
+
+<style>
+  .hl {
+    grid-template-columns: 110px 90px minmax(0, 1fr) auto;
+    align-items: end;
+  }
+
+  .ed {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) minmax(0, 1fr) auto;
+    align-items: end;
+  }
+
+  .tools {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 0 10px;
+  }
+
+  .tl {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .tl-text {
+    display: grid;
+    gap: 6px;
+  }
+
+  .tl-text input[name='t_code'] {
+    width: 96px;
+    padding: 6px 10px;
+    font-size: 14px;
+  }
+
+  .mini {
+    position: relative;
+    display: grid;
+    gap: 4px;
+    justify-items: center;
+  }
+
+  .mini img {
+    position: absolute;
+    top: 0;
+    width: 56px !important;
+    height: 56px !important;
+    padding: 6px;
+    object-fit: contain !important;
+    background: #fff;
+    pointer-events: none;
+  }
+
+  .pick {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border: 2px dashed var(--line);
+    border-radius: 12px;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    color: var(--ink-3);
+    cursor: pointer;
+  }
+
+  .pick:hover {
+    border-color: var(--accent);
+  }
+
+  .pick input {
+    display: none;
+  }
+
+  .mini .linkish {
+    font-size: 12px;
+  }
+
+  .skill-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 0 10px;
+  }
+
+  .skill-grid .row button {
+    justify-self: start;
+  }
+
+  @media (max-width: 640px) {
+    .hl,
+    .ed {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>

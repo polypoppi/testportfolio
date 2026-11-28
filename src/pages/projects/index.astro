@@ -1,6 +1,8 @@
 ---
 import Base from '../../layouts/Base.astro';
-import { projects } from '../../data/profile';
+import { getProjects } from '../../lib/db';
+
+const projects = await getProjects();
 ---
 
 <Base title="Projects">

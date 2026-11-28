@@ -1,0 +1,488 @@
+---
+import Admin from '../../../../layouts/Admin.astro';
+import { db, getStoryById, getChapter, getChapters } from '../../../../lib/db';
+
+const storyId = Number(Astro.params.id);
+const chapterId = Number(Astro.params.chapterId);
+const story = await getStoryById(storyId);
+const chapter = await getChapter(chapterId);
+if (!story || !chapter || chapter.story_id !== storyId) return Astro.redirect('/admin/writing');
+
+if (Astro.request.method === 'POST') {
+  const fd = await Astro.request.formData();
+  if (fd.get('action') === 'delete') {
+    await db().prepare('DELETE FROM chapters WHERE id = ?1').bind(chapterId).run();
+    return Astro.redirect(`/admin/writing/${storyId}?saved=1`);
+  }
+}
+
+const all = await getChapters(storyId, true);
+const idx = all.findIndex((c) => c.id === chapterId);
+const prev = all[idx - 1];
+const next = all[idx + 1];
+const initial = JSON.stringify({
+  id: chapter.id,
+  title: chapter.title,
+  body: chapter.body,
+  published: chapter.published,
+  publish_at: chapter.publish_at,
+}).replace(/</g, '\\u003c');
+---
+
+<Admin title={chapter.title} wide>
+  <div class="ed-top">
+    <p class="crumbs">
+      <a href="/admin/writing">Writing</a> / <a href={`/admin/writing/${storyId}`}>{story.title}</a> / Chapter {idx + 1}
+    </p>
+    <div class="ed-status">
+      <span id="save-state" class="hint">All changes saved</span>
+      <button id="focus" class="small" type="button" title="Hide everything but the page">Focus</button>
+    </div>
+  </div>
+
+  <div class="ed-layout">
+    <div class="ed-paper">
+      <input id="title" class="ed-title" type="text" value={chapter.title} placeholder="Chapter title" aria-label="Chapter title" />
+      <div class="toolbar" role="toolbar" aria-label="Formatting">
+        <button type="button" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+        <button type="button" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+        <button type="button" data-cmd="underline" title="Underline (Ctrl+U)"><u>U</u></button>
+        <button type="button" data-cmd="strike" title="Strikethrough"><s>S</s></button>
+        <span class="sep"></span>
+        <button type="button" data-cmd="h2" title="Heading">H</button>
+        <button type="button" data-cmd="quote" title="Quote">“ ”</button>
+        <button type="button" data-cmd="hr" title="Scene break">✦</button>
+        <button type="button" data-cmd="link" title="Link">Link</button>
+        <span class="sep"></span>
+        <button type="button" data-cmd="undo" title="Undo (Ctrl+Z)">↶</button>
+        <button type="button" data-cmd="redo" title="Redo (Ctrl+Shift+Z)">↷</button>
+      </div>
+      <div id="editor" class="ed-body"></div>
+    </div>
+
+    <aside class="ed-side">
+      <div class="panel">
+        <p class="eyebrow">This chapter</p>
+        <p class="count"><strong id="words">{chapter.words.toLocaleString()}</strong> words</p>
+        <p class="hint" id="readtime"></p>
+      </div>
+
+      <div class="panel">
+        <p class="eyebrow">Publishing</p>
+        <label class="check">
+          <input id="published" type="checkbox" checked={chapter.published} />
+          Publish this chapter
+        </label>
+        <label class="field sched">
+          <span>Go live at <small class="hint">(optional, your local time)</small></span>
+          <input id="publish_at" type="datetime-local" />
+        </label>
+        <p class="hint" id="pub-note"></p>
+        {
+          story.published ? (
+            <a class="button small" href={`/writing/${story.slug}/${chapter.slug}`} target="_blank" rel="noopener">
+              View on site ↗
+            </a>
+          ) : (
+            <p class="hint">
+              The story itself is hidden. Turn it on in <a href={`/admin/writing/${storyId}`}>story details</a>.
+            </p>
+          )
+        }
+      </div>
+
+      <div class="panel nav">
+        {prev ? <a href={`/admin/writing/${storyId}/${prev.id}`}>← {prev.title}</a> : <span />}
+        {next ? <a href={`/admin/writing/${storyId}/${next.id}`}>{next.title} →</a> : (
+          <form method="post" action={`/admin/writing/${storyId}`}>
+            <button class="small" name="action" value="new-chapter">+ Next chapter</button>
+          </form>
+        )}
+      </div>
+
+      <form method="post" data-confirm="Delete this chapter? This can’t be undone.">
+        <button class="danger small" name="action" value="delete">Delete chapter</button>
+      </form>
+    </aside>
+  </div>
+
+  <script type="application/json" id="initial" set:html={initial} />
+</Admin>
+
+<script>
+  import { Editor } from '@tiptap/core';
+  import StarterKit from '@tiptap/starter-kit';
+  import { Placeholder } from '@tiptap/extensions';
+
+  const data = JSON.parse(document.getElementById('initial')!.textContent!);
+  const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+  const titleEl = $<HTMLInputElement>('title');
+  const pubEl = $<HTMLInputElement>('published');
+  const atEl = $<HTMLInputElement>('publish_at');
+  const stateEl = $('save-state');
+  const wordsEl = $('words');
+  const readEl = $('readtime');
+  const noteEl = $('pub-note');
+
+  // publish_at is stored in UTC as YYYY-MM-DDTHH:MM; the input shows local time.
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const toLocalInput = (utc: string | null) => {
+    if (!utc) return '';
+    const d = new Date(utc + ':00Z');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+  const toUtc = (local: string) => (local ? new Date(local).toISOString().slice(0, 16) : null);
+  atEl.value = toLocalInput(data.publish_at);
+
+  const editor = new Editor({
+    element: $('editor'),
+    extensions: [
+      StarterKit.configure({ heading: { levels: [2, 3] }, codeBlock: false, code: false, link: { openOnClick: false } }),
+      Placeholder.configure({ placeholder: 'Start writing…' }),
+    ],
+    content: data.body,
+    autofocus: data.body ? false : 'end',
+    onUpdate: () => {
+      updateCount();
+      schedule();
+    },
+  });
+
+  const countWords = () => {
+    const t = editor.getText().trim();
+    return t ? t.split(/\s+/).length : 0;
+  };
+  const updateCount = () => {
+    const w = countWords();
+    wordsEl.textContent = w.toLocaleString();
+    readEl.textContent = `About ${Math.max(1, Math.round(w / 220))} min to read`;
+  };
+  const updateNote = () => {
+    if (!pubEl.checked) noteEl.textContent = 'Draft: only you can see it.';
+    else if (atEl.value && new Date(atEl.value) > new Date())
+      noteEl.textContent = `Scheduled: goes live ${new Date(atEl.value).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}.`;
+    else noteEl.textContent = 'Live on your site.';
+  };
+  updateCount();
+  updateNote();
+
+  let timer: number | undefined;
+  let dirty = false;
+  let saving: Promise<void> | null = null;
+
+  function schedule() {
+    dirty = true;
+    stateEl.textContent = 'Unsaved changes';
+    clearTimeout(timer);
+    timer = window.setTimeout(save, 1200);
+  }
+
+  async function save() {
+    clearTimeout(timer);
+    if (saving) await saving;
+    if (!dirty) return;
+    dirty = false;
+    stateEl.textContent = 'Saving…';
+    saving = (async () => {
+      try {
+        const res = await fetch(`/api/admin/chapters/${data.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: titleEl.value,
+            body: editor.getHTML(),
+            published: pubEl.checked,
+            publish_at: toUtc(atEl.value),
+          }),
+        });
+        if (res.status === 401) {
+          dirty = true;
+          stateEl.textContent = 'Signed out. Copy your text, then sign in again.';
+          return;
+        }
+        if (!res.ok) throw new Error();
+        stateEl.textContent = `Saved ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+      } catch {
+        dirty = true;
+        stateEl.textContent = 'Couldn’t save. Retrying…';
+        timer = window.setTimeout(save, 4000);
+      } finally {
+        saving = null;
+      }
+    })();
+    await saving;
+  }
+
+  titleEl.addEventListener('input', schedule);
+  pubEl.addEventListener('change', () => (updateNote(), schedule()));
+  atEl.addEventListener('change', () => (updateNote(), schedule()));
+
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+      e.preventDefault();
+      dirty = true;
+      save();
+    }
+    if (e.key === 'Escape') document.body.classList.remove('focus-mode');
+  });
+  window.addEventListener('beforeunload', (e) => {
+    if (dirty || saving) e.preventDefault();
+  });
+  document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && save());
+
+  // Toolbar
+  const cmds: Record<string, () => void> = {
+    bold: () => editor.chain().focus().toggleBold().run(),
+    italic: () => editor.chain().focus().toggleItalic().run(),
+    underline: () => editor.chain().focus().toggleUnderline().run(),
+    strike: () => editor.chain().focus().toggleStrike().run(),
+    h2: () => editor.chain().focus().toggleHeading({ level: 2 }).run(),
+    quote: () => editor.chain().focus().toggleBlockquote().run(),
+    hr: () => editor.chain().focus().setHorizontalRule().run(),
+    undo: () => editor.chain().focus().undo().run(),
+    redo: () => editor.chain().focus().redo().run(),
+    link: () => {
+      const prev = editor.getAttributes('link').href ?? '';
+      const url = window.prompt('Link address (leave empty to remove)', prev);
+      if (url === null) return;
+      if (!url) editor.chain().focus().unsetLink().run();
+      else editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+    },
+  };
+  const active: Record<string, () => boolean> = {
+    bold: () => editor.isActive('bold'),
+    italic: () => editor.isActive('italic'),
+    underline: () => editor.isActive('underline'),
+    strike: () => editor.isActive('strike'),
+    h2: () => editor.isActive('heading', { level: 2 }),
+    quote: () => editor.isActive('blockquote'),
+    link: () => editor.isActive('link'),
+  };
+  const buttons = document.querySelectorAll<HTMLButtonElement>('[data-cmd]');
+  buttons.forEach((b) => b.addEventListener('click', () => cmds[b.dataset.cmd!]?.()));
+  const syncToolbar = () => buttons.forEach((b) => b.classList.toggle('on', !!active[b.dataset.cmd!]?.()));
+  editor.on('selectionUpdate', syncToolbar);
+  editor.on('transaction', syncToolbar);
+
+  $('focus').addEventListener('click', () => document.body.classList.toggle('focus-mode'));
+</script>
+
+<style>
+  .ed-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+
+  .ed-top .crumbs {
+    margin: 0;
+  }
+
+  .ed-status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .ed-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 260px;
+    gap: 28px;
+    align-items: start;
+  }
+
+  .ed-paper {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 40px clamp(20px, 6vw, 80px) 120px;
+    min-height: 75vh;
+  }
+
+  .ed-title {
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    font-family: var(--font-serif) !important;
+    font-size: clamp(28px, 4vw, 40px) !important;
+    font-weight: 600;
+    max-width: 680px;
+    margin: 0 auto;
+    display: block;
+  }
+
+  .toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-width: 680px;
+    margin: 18px auto 24px;
+    padding: 8px 0;
+    background: #fff;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .toolbar button {
+    min-width: 36px;
+    height: 34px;
+    padding: 0 10px;
+    justify-content: center;
+    background: transparent;
+    font-size: 15px;
+  }
+
+  .toolbar button:hover {
+    background: var(--paper-2);
+  }
+
+  .toolbar button.on {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .sep {
+    width: 1px;
+    margin: 4px 6px;
+    background: var(--line);
+  }
+
+  .ed-body {
+    max-width: 680px;
+    margin: 0 auto;
+    font-family: var(--font-serif);
+    font-size: 19px;
+    line-height: 1.8;
+  }
+
+  .ed-body :global(.tiptap) {
+    outline: none;
+    min-height: 50vh;
+  }
+
+  .ed-body :global(p) {
+    margin: 0 0 1.2em;
+  }
+
+  .ed-body :global(h2),
+  .ed-body :global(h3) {
+    margin: 1.4em 0 0.5em;
+  }
+
+  .ed-body :global(blockquote) {
+    margin: 1.4em 0;
+    padding-left: 1.1em;
+    border-left: 3px solid var(--accent);
+    font-style: italic;
+  }
+
+  .ed-body :global(hr) {
+    border: 0;
+    text-align: center;
+    margin: 2em 0;
+  }
+
+  .ed-body :global(hr)::after {
+    content: '✦  ✦  ✦';
+    color: var(--ink-3);
+    letter-spacing: 0.4em;
+  }
+
+  .ed-body :global(hr.ProseMirror-selectednode)::after {
+    color: var(--accent);
+  }
+
+  .ed-body :global(a) {
+    color: var(--accent);
+  }
+
+  .ed-body :global(p.is-editor-empty:first-child::before) {
+    content: attr(data-placeholder);
+    color: var(--ink-3);
+    float: left;
+    height: 0;
+    pointer-events: none;
+  }
+
+  .ed-side {
+    position: sticky;
+    top: 20px;
+    display: grid;
+    gap: 0;
+  }
+
+  .ed-side .panel {
+    padding: 18px;
+    margin-bottom: 14px;
+  }
+
+  .count {
+    margin: 6px 0 0;
+  }
+
+  .count strong {
+    font-size: 32px;
+    letter-spacing: -0.03em;
+  }
+
+  .sched {
+    margin: 14px 0 6px;
+  }
+
+  .nav {
+    display: grid;
+    gap: 8px;
+    font-size: 14px;
+  }
+
+  .nav a {
+    color: var(--ink-2);
+    text-decoration: none;
+  }
+
+  .nav a:hover {
+    color: var(--accent);
+  }
+
+  :global(body.focus-mode .a-side),
+  :global(body.focus-mode .ed-side),
+  :global(body.focus-mode .crumbs) {
+    display: none !important;
+  }
+
+  :global(body.focus-mode .a-shell) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  :global(body.focus-mode) .ed-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  :global(body.focus-mode) .ed-paper {
+    border-color: transparent;
+    background: transparent;
+  }
+
+  :global(body.focus-mode) .toolbar {
+    background: var(--paper);
+  }
+
+  @media (max-width: 960px) {
+    .ed-layout {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .ed-side {
+      position: static;
+    }
+
+    .ed-paper {
+      padding: 24px 18px 80px;
+    }
+  }
+</style>

@@ -1,33 +1,24 @@
 ---
 import Base from '../../../layouts/Base.astro';
-import { stories } from '../../../data/profile';
+import { getStoryBySlug, getChapters } from '../../../lib/db';
 
-export function getStaticPaths() {
-  return stories.flatMap((s) =>
-    s.chapters.map((c, i) => ({
-      params: { story: s.slug, chapter: c.slug },
-      props: { story: s, index: i },
-    })),
-  );
-}
-
-const { story, index } = Astro.props;
-const chapter = story.chapters[index];
-const prev = story.chapters[index - 1];
-const next = story.chapters[index + 1];
-const words = chapter.body.join(' ').split(/\s+/).length;
-const minutes = Math.max(1, Math.round(words / 220));
+const story = await getStoryBySlug(Astro.params.story!);
+const chapters = story ? await getChapters(story.id) : [];
+const index = chapters.findIndex((c) => c.slug === Astro.params.chapter);
+if (!story || index < 0) return new Response(null, { status: 404 });
+const chapter = chapters[index];
+const prev = chapters[index - 1];
+const next = chapters[index + 1];
+const minutes = Math.max(1, Math.round(chapter.words / 220));
 ---
 
 <Base title={`${chapter.title} · ${story.title}`}>
   <div class="progress" aria-hidden="true"><span id="bar"></span></div>
   <article class="reader">
     <a class="back mono" href={`/writing/${story.slug}`}>← {story.title}</a>
-    <p class="eyebrow">Chapter {index + 1} of {story.chapters.length} · {minutes} min read</p>
+    <p class="eyebrow">Chapter {index + 1} of {chapters.length} · {minutes} min read</p>
     <h1>{chapter.title}</h1>
-    <div class="prose">
-      {chapter.body.map((p) => <p>{p}</p>)}
-    </div>
+    <div class="prose" set:html={chapter.body} />
 
     <nav class="pager" aria-label="Chapters">
       {
@@ -111,8 +102,33 @@ const minutes = Math.max(1, Math.round(words / 220));
     line-height: 1.8;
   }
 
-  .prose p {
+  .prose :global(p) {
     margin: 0 0 1.3em;
+  }
+
+  .prose :global(h2),
+  .prose :global(h3) {
+    font-family: var(--font-serif);
+    margin: 1.6em 0 0.6em;
+  }
+
+  .prose :global(blockquote) {
+    margin: 1.5em 0;
+    padding-left: 1.2em;
+    border-left: 3px solid var(--accent);
+    font-style: italic;
+  }
+
+  .prose :global(hr) {
+    border: 0;
+    text-align: center;
+    margin: 2.4em 0;
+  }
+
+  .prose :global(hr)::after {
+    content: '✦  ✦  ✦';
+    color: var(--ink-3);
+    letter-spacing: 0.4em;
   }
 
   .pager {

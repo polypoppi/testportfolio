@@ -1,0 +1,166 @@
+---
+import '../styles/global.css';
+import '../styles/admin.css';
+
+interface Props {
+  title: string;
+  wide?: boolean;
+  bare?: boolean; // no sidebar (login, focus mode)
+}
+
+const { title, wide = false, bare = false } = Astro.props;
+const path = Astro.url.pathname;
+const saved = Astro.url.searchParams.get('saved');
+
+const nav = [
+  { href: '/admin', label: 'Dashboard', match: (p: string) => p === '/admin' || p === '/admin/' },
+  { href: '/admin/writing', label: 'Writing', match: (p: string) => p.startsWith('/admin/writing') },
+  { href: '/admin/profile', label: 'Profile & skills', match: (p: string) => p.startsWith('/admin/profile') },
+  { href: '/admin/experience', label: 'Experience', match: (p: string) => p.startsWith('/admin/experience') },
+  { href: '/admin/projects', label: 'Projects', match: (p: string) => p.startsWith('/admin/projects') },
+  { href: '/admin/account', label: 'Account', match: (p: string) => p.startsWith('/admin/account') },
+];
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>{title} · Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Literata:opsz,wght@7..72,400;7..72,600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body class="admin">
+    {
+      bare ? (
+        <slot />
+      ) : (
+        <div class="a-shell">
+          <header class="a-side">
+            <a class="a-brand" href="/admin">
+              <span class="a-logo">MG</span>
+              <span>Studio</span>
+            </a>
+            <nav class="a-nav">
+              {nav.map((n) => (
+                <a href={n.href} class:list={{ active: n.match(path) }}>
+                  {n.label}
+                </a>
+              ))}
+            </nav>
+            <div class="a-foot">
+              <a href="/" target="_blank" rel="noopener">
+                View site ↗
+              </a>
+              <form method="post" action="/admin/logout">
+                <button class="linkish" type="submit">
+                  Sign out
+                </button>
+              </form>
+            </div>
+          </header>
+          <main class:list={['a-main', { wide }]}>
+            {saved && <p class="toast" role="status">Saved ✓</p>}
+            <slot />
+          </main>
+        </div>
+      )
+    }
+
+    <script>
+      // Repeatable rows: <button data-add="tpl-id" data-into="#list">, <button data-remove>
+      document.addEventListener('click', (e) => {
+        const t = e.target as HTMLElement;
+        const add = t.closest<HTMLElement>('[data-add]');
+        if (add) {
+          e.preventDefault();
+          const tpl = document.getElementById(add.dataset.add!) as HTMLTemplateElement;
+          const into = document.querySelector(add.dataset.into!);
+          if (tpl && into) {
+            into.appendChild(tpl.content.cloneNode(true));
+            (into.lastElementChild?.querySelector('input,textarea') as HTMLElement | null)?.focus();
+          }
+        }
+        const rm = t.closest('[data-remove]');
+        if (rm) {
+          e.preventDefault();
+          rm.closest('[data-row]')?.remove();
+        }
+      });
+
+      // Confirm destructive buttons.
+      document.addEventListener('submit', (e) => {
+        const btn = (e as SubmitEvent).submitter as HTMLElement | null;
+        const msg = btn?.dataset.confirm ?? (e.target as HTMLElement).dataset.confirm;
+        if (msg && !window.confirm(msg)) e.preventDefault();
+      });
+
+      // Resize big photos in the browser (max 1600px, WebP) so uploads stay small.
+      async function shrink(file: File): Promise<Blob> {
+        if (file.type === 'image/gif') return file;
+        try {
+          const bmp = await createImageBitmap(file);
+          const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.round(bmp.width * scale);
+          canvas.height = Math.round(bmp.height * scale);
+          canvas.getContext('2d')!.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+          const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/webp', 0.85));
+          return blob && blob.type === 'image/webp' && blob.size < file.size ? new File([blob], 'image.webp', { type: 'image/webp' }) : file;
+        } catch {
+          return file;
+        }
+      }
+
+      // Image upload fields: <div data-upload> with input[type=file], input[type=hidden], img preview.
+      document.querySelectorAll<HTMLElement>('[data-upload]').forEach((box) => {
+        const file = box.querySelector<HTMLInputElement>('input[type=file]')!;
+        const hidden = box.querySelector<HTMLInputElement>('input[type=hidden]')!;
+        const img = box.querySelector<HTMLImageElement>('img')!;
+        const status = box.querySelector<HTMLElement>('.up-status')!;
+        const clear = box.querySelector<HTMLButtonElement>('[data-clear]');
+        const sync = () => {
+          img.hidden = !hidden.value;
+          if (hidden.value) img.src = hidden.value;
+          if (clear) clear.hidden = !hidden.value;
+        };
+        sync();
+        clear?.addEventListener('click', (e) => {
+          e.preventDefault();
+          hidden.value = '';
+          sync();
+        });
+        file.addEventListener('change', async () => {
+          const f = file.files?.[0];
+          if (!f) return;
+          status.hidden = false;
+          status.textContent = 'Uploading…';
+          const body = new FormData();
+          body.append('file', await shrink(f));
+          const res = await fetch('/api/admin/upload', { method: 'POST', body });
+          if (!res.ok) {
+            status.textContent = (await res.text()) || 'Upload failed';
+            return;
+          }
+          hidden.value = (await res.json()).url;
+          status.textContent = 'Uploaded. Remember to save.';
+          sync();
+        });
+      });
+
+      document.querySelector('.toast')?.addEventListener('animationend', (e) => (e.target as HTMLElement).remove());
+      if (location.search.includes('saved=')) {
+        const u = new URL(location.href);
+        u.searchParams.delete('saved');
+        history.replaceState(null, '', u);
+      }
+    </script>
+  </body>
+</html>

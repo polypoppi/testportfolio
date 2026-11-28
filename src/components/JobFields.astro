@@ -1,0 +1,20 @@
+---
+import type { Job } from '../lib/db';
+interface Props {
+  job?: Job;
+}
+const j: Partial<Job> = Astro.props.job ?? {};
+---
+
+<div class="grid-2">
+  <label class="field"><span>Job title</span><input type="text" name="role" value={j.role} required /></label>
+  <label class="field"><span>Company</span><input type="text" name="company" value={j.company} required /></label>
+  <label class="field"><span>Location</span><input type="text" name="place" value={j.place} /></label>
+  <label class="field"><span>Label <small class="hint">(small chip, e.g. “Airport Operations”)</small></span><input type="text" name="tag" value={j.tag} /></label>
+  <label class="field"><span>Started</span><input type="text" name="start" value={j.start} placeholder="Jun 2026" required /></label>
+  <label class="field"><span>Ended <small class="hint">(leave empty if current)</small></span><input type="text" name="end" value={j.end === 'Present' ? '' : j.end} placeholder="Present" /></label>
+</div>
+<label class="field">
+  <span>What you did <small class="hint">(one point per line)</small></span>
+  <textarea name="points" rows="6">{(j.points ?? []).join('\n')}</textarea>
+</label>

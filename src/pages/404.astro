@@ -1,0 +1,29 @@
+---
+import Base from '../layouts/Base.astro';
+Astro.response.status = 404;
+---
+
+<Base title="Not found">
+  <section class="nf">
+    <p class="eyebrow">Error 404 · Gate closed</p>
+    <h1>This page has already departed.</h1>
+    <p>The link may be old or mistyped.</p>
+    <a class="btn" href="/">Back to home <span class="dot" aria-hidden="true">→</span></a>
+  </section>
+</Base>
+
+<style>
+  .nf {
+    max-width: 560px;
+    margin: 12vh auto;
+  }
+
+  h1 {
+    font-size: clamp(32px, 5vw, 48px);
+    margin: 10px 0;
+  }
+
+  p {
+    color: var(--ink-2);
+  }
+</style>

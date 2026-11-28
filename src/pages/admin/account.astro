@@ -1,0 +1,56 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import { changeCredentials, checkLogin, currentUsername } from '../../lib/auth';
+
+let error = '';
+const username = await currentUsername();
+
+if (Astro.request.method === 'POST') {
+  const fd = await Astro.request.formData();
+  const current = String(fd.get('current') ?? '');
+  const newUser = String(fd.get('username') ?? '').trim();
+  const pw = String(fd.get('password') ?? '');
+  const pw2 = String(fd.get('password2') ?? '');
+  const ip = Astro.request.headers.get('cf-connecting-ip') ?? 'unknown';
+  if (!(await checkLogin(ip, username, current))) error = 'Your current password is not right.';
+  else if (newUser.length < 3) error = 'Username needs at least 3 characters.';
+  else if (pw.length < 10) error = 'New password needs at least 10 characters.';
+  else if (pw !== pw2) error = 'The two new passwords don’t match.';
+  else {
+    await changeCredentials(newUser, pw);
+    return Astro.redirect('/admin/login');
+  }
+}
+---
+
+<Admin title="Account">
+  <div class="a-head">
+    <div>
+      <h1>Account</h1>
+      <p>Change the username and password you use to sign in.</p>
+    </div>
+  </div>
+  <form method="post" class="panel">
+    {error && <p class="error" role="alert">{error}</p>}
+    <label class="field">
+      <span>Current password</span>
+      <input type="password" name="current" autocomplete="current-password" required />
+    </label>
+    <label class="field">
+      <span>Username</span>
+      <input type="text" name="username" value={username} autocomplete="username" required />
+    </label>
+    <div class="grid-2">
+      <label class="field">
+        <span>New password</span>
+        <input type="password" name="password" autocomplete="new-password" minlength="10" required />
+      </label>
+      <label class="field">
+        <span>Repeat new password</span>
+        <input type="password" name="password2" autocomplete="new-password" minlength="10" required />
+      </label>
+    </div>
+    <p class="hint">You’ll be signed out everywhere and asked to sign in again.</p>
+    <button class="primary" type="submit">Update sign-in</button>
+  </form>
+</Admin>

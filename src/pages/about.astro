@@ -1,6 +1,8 @@
 ---
 import Base from '../layouts/Base.astro';
-import { profile } from '../data/profile';
+import { getSettings } from '../lib/db';
+
+const { profile } = await getSettings();
 ---
 
 <Base title="Who am I?">

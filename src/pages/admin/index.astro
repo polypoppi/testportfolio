@@ -1,0 +1,133 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import { db, getSettings } from '../../lib/db';
+
+const { profile } = await getSettings();
+const recent = await db()
+  .prepare(
+    `SELECT c.id, c.title, c.words, c.updated_at, c.published, s.id AS story_id, s.title AS story_title
+     FROM chapters c JOIN stories s ON s.id = c.story_id ORDER BY c.updated_at DESC LIMIT 5`,
+  )
+  .all<any>();
+const totals = await db()
+  .prepare(
+    `SELECT (SELECT COUNT(*) FROM stories) AS stories, (SELECT COUNT(*) FROM chapters) AS chapters,
+            (SELECT COALESCE(SUM(words),0) FROM chapters) AS words, (SELECT COUNT(*) FROM projects) AS projects,
+            (SELECT COUNT(*) FROM experience) AS jobs`,
+  )
+  .first<any>();
+const last = recent.results[0];
+const hour = new Date().getUTCHours() + 8; // Malaysia time
+const greet = hour % 24 < 12 ? 'Good morning' : hour % 24 < 18 ? 'Good afternoon' : 'Good evening';
+const ago = (iso: string) => {
+  const mins = Math.round((Date.now() - new Date(iso.replace(' ', 'T') + 'Z').getTime()) / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins} min ago`;
+  if (mins < 1440) return `${Math.round(mins / 60)} h ago`;
+  return `${Math.round(mins / 1440)} d ago`;
+};
+---
+
+<Admin title="Dashboard">
+  <div class="a-head">
+    <div>
+      <h1>{greet}, {profile.firstName}.</h1>
+      <p>What would you like to work on?</p>
+    </div>
+  </div>
+
+  {
+    last && (
+      <a class="panel continue" href={`/admin/writing/${last.story_id}/${last.id}`}>
+        <span class="eyebrow">Continue writing</span>
+        <strong>{last.title}</strong>
+        <span class="hint">
+          {last.story_title} · {last.words.toLocaleString()} words · edited {ago(last.updated_at)}
+        </span>
+        <span class="go">Open editor →</span>
+      </a>
+    )
+  }
+
+  <div class="tiles">
+    <a class="panel tile" href="/admin/writing">
+      <strong>{totals.stories}</strong><span>stories · {totals.chapters} chapters</span>
+    </a>
+    <a class="panel tile" href="/admin/writing">
+      <strong>{Number(totals.words).toLocaleString()}</strong><span>words written</span>
+    </a>
+    <a class="panel tile" href="/admin/experience">
+      <strong>{totals.jobs}</strong><span>roles in experience</span>
+    </a>
+    <a class="panel tile" href="/admin/projects">
+      <strong>{totals.projects}</strong><span>projects</span>
+    </a>
+  </div>
+
+  <section class="panel">
+    <h2>Recently edited</h2>
+    <ul class="list">
+      {
+        recent.results.map((c) => (
+          <li class="item">
+            <div class="grow">
+              <a class="title" href={`/admin/writing/${c.story_id}/${c.id}`}>{c.title}</a>
+              <span class="sub">{c.story_title} · {ago(c.updated_at)}</span>
+            </div>
+            <span class:list={['badge', { live: c.published }]}>{c.published ? 'Published' : 'Draft'}</span>
+          </li>
+        ))
+      }
+      {recent.results.length === 0 && <li class="hint">Nothing yet. Start a story from Writing.</li>}
+    </ul>
+  </section>
+</Admin>
+
+<style>
+  .continue {
+    display: grid;
+    gap: 4px;
+    text-decoration: none;
+    border-color: var(--accent);
+    background: linear-gradient(120deg, #fff 60%, var(--accent-soft));
+  }
+
+  .continue strong {
+    font-family: var(--font-serif);
+    font-size: 26px;
+    font-weight: 600;
+  }
+
+  .go {
+    margin-top: 8px;
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .tile {
+    display: grid;
+    margin: 0;
+    text-decoration: none;
+  }
+
+  .tile strong {
+    font-size: 30px;
+    letter-spacing: -0.03em;
+  }
+
+  .tile span {
+    color: var(--ink-2);
+    font-size: 14px;
+  }
+
+  .tile:hover {
+    border-color: var(--accent);
+  }
+</style>

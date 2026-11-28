@@ -1,6 +1,8 @@
 ---
 import Base from '../layouts/Base.astro';
-import { experience, skillGroups, education, certifications, profile } from '../data/profile';
+import { getSettings, getExperience } from '../lib/db';
+
+const [{ profile, skills: skillGroups, education, certifications }, experience] = await Promise.all([getSettings(), getExperience()]);
 ---
 
 <Base title="Experience" description={`Career of ${profile.name} in aviation quality, safety and load control.`}>

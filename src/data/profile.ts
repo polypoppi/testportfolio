@@ -13,20 +13,26 @@ export const profile = {
   email: 'muslihuddin.ghazali@gmail.com',
   linkedin: 'https://www.linkedin.com/in/muslihuddinghazali/',
   github: 'https://github.com/polypoppi',
-  photo: '' as string, // set once the photo is uploaded
+  photo: '/photo.webp' as string, // replaceable from the admin
   intro:
     'I keep flights balanced and operations safe. Eight years across load control, quality assurance and airport operations, plus a habit of turning paper processes into digital ones.',
 };
 
+// Floating tiles on the home page. `logo` is an image URL (built-in or uploaded in the admin);
+// tiles without a logo show the short code instead.
 export const tools = [
-  { code: 'PA', name: 'Power Apps' },
-  { code: 'PF', name: 'Power Automate' },
-  { code: 'SP', name: 'SharePoint' },
-  { code: 'BI', name: 'Power BI' },
-  { code: 'Qk', name: 'Qlik' },
-  { code: '1A', name: 'Amadeus Altea FM' },
-  { code: 'Sw', name: 'Skywise' },
-  { code: 'DG', name: 'DGR Cat. 10' },
+  { code: 'AB', name: 'Airbus', logo: '/logos/airbus.svg' },
+  { code: 'X', name: 'Excel', logo: '/logos/excel.svg' },
+  { code: 'SQ', name: 'Singapore Airlines', logo: '/logos/singaporeairlines.svg' },
+  { code: 'PA', name: 'Power Automate', logo: '/logos/powerautomate.svg' },
+  { code: '1A', name: 'Amadeus', logo: '' },
+  { code: 'BI', name: 'Power BI', logo: '/logos/powerbi.svg' },
+  { code: 'MA', name: 'Malaysia Airports', logo: '' },
+  { code: 'SP', name: 'SharePoint', logo: '/logos/sharepoint.svg' },
+  { code: 'Qk', name: 'Qlik', logo: '/logos/qlik.svg' },
+  { code: 'KB', name: 'Kris Business Hub', logo: '' },
+  { code: 'SAP', name: 'SAP', logo: '/logos/sap.svg' },
+  { code: 'DG', name: 'Dangerous Goods', logo: '' },
 ];
 
 export const highlights = [

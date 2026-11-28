@@ -1,0 +1,119 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import { db, getExperience } from '../../lib/db';
+import Fields from '../../components/JobFields.astro';
+
+if (Astro.request.method === 'POST') {
+  const fd = await Astro.request.formData();
+  const s = (k: string) => String(fd.get(k) ?? '').trim();
+  const id = Number(s('id'));
+  const action = s('action');
+
+  if (action === 'delete' && id) {
+    await db().prepare('DELETE FROM experience WHERE id = ?1').bind(id).run();
+  } else {
+    const data = JSON.stringify({
+      role: s('role'),
+      company: s('company'),
+      place: s('place'),
+      start: s('start'),
+      end: s('end') || 'Present',
+      tag: s('tag'),
+      points: s('points').split('\n').map((x) => x.replace(/^[-•*]\s*/, '').trim()).filter(Boolean),
+    });
+    if (id) await db().prepare('UPDATE experience SET data = ?1 WHERE id = ?2').bind(data, id).run();
+    else await db().prepare('INSERT INTO experience (position, data) VALUES (-1, ?1)').bind(data).run();
+  }
+  return Astro.redirect('/admin/experience?saved=1');
+}
+
+const jobs = await getExperience();
+const open = Astro.url.searchParams.get('new') !== null;
+---
+
+<Admin title="Experience">
+  <div class="a-head">
+    <div>
+      <h1>Experience</h1>
+      <p>Your roles, newest first. Click a role to edit it, drag ⋮⋮ to reorder.</p>
+    </div>
+    <a class="button primary" href="/admin/experience?new">+ Add role</a>
+  </div>
+
+  {
+    open && (
+      <form method="post" class="panel">
+        <h2>New role</h2>
+        <p class="hint">It will be added at the top.</p>
+        <Fields />
+        <div class="savebar">
+          <a class="button" href="/admin/experience">Cancel</a>
+          <button class="primary" type="submit">Add role</button>
+        </div>
+      </form>
+    )
+  }
+
+  <section class="panel">
+    <ul class="list" data-sortable="experience">
+      {
+        jobs.map((j) => (
+          <li class="job" data-id={j.id}>
+            <details>
+              <summary class="item">
+                <span class="handle" title="Drag to reorder">⋮⋮</span>
+                <div class="grow">
+                  <span class="title">{j.role}</span>
+                  <span class="sub">
+                    {j.company} · {j.start} – {j.end}
+                  </span>
+                </div>
+                <span class="badge">Edit</span>
+              </summary>
+              <form method="post" class="edit">
+                <input type="hidden" name="id" value={j.id} />
+                <Fields job={j} />
+                <div class="savebar">
+                  <button class="primary" type="submit" name="action" value="save">Save role</button>
+                  <button class="danger first" name="action" value="delete" data-confirm={`Delete “${j.role}”?`}>
+                    Delete
+                  </button>
+                </div>
+              </form>
+            </details>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+</Admin>
+
+<script>
+  import { initSortable } from '../../scripts/sortable';
+  initSortable();
+</script>
+
+<style>
+  .job summary {
+    list-style: none;
+    cursor: pointer;
+  }
+
+  .job summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .job:last-child summary {
+    border-bottom: 0;
+  }
+
+  .job details[open] summary .badge {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .edit {
+    padding: 16px 4px 4px;
+    border-bottom: 1px solid var(--line);
+  }
+</style>

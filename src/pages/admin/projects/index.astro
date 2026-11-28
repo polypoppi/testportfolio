@@ -1,0 +1,39 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import { getProjects } from '../../../lib/db';
+
+const projects = await getProjects(true);
+---
+
+<Admin title="Projects">
+  <div class="a-head">
+    <div>
+      <h1>Projects</h1>
+      <p>Shown on the Projects page. Drag ⋮⋮ to reorder.</p>
+    </div>
+    <a class="button primary" href="/admin/projects/new">+ Add project</a>
+  </div>
+
+  <section class="panel">
+    {projects.length === 0 && <p class="empty-state">No projects yet.</p>}
+    <ul class="list" data-sortable="projects">
+      {
+        projects.map((p) => (
+          <li class="item" data-id={p.id}>
+            <span class="handle" title="Drag to reorder">⋮⋮</span>
+            <div class="grow">
+              <a class="title" href={`/admin/projects/${p.id}`}>{p.title}</a>
+              <span class="sub">{p.org} · {p.year}</span>
+            </div>
+            <span class:list={['badge', { live: p.published }]}>{p.published ? 'On site' : 'Hidden'}</span>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+</Admin>
+
+<script>
+  import { initSortable } from '../../../scripts/sortable';
+  initSortable();
+</script>
